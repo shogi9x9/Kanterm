@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    name: Rust
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.90.0
+          components: clippy,rustfmt
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Test
+        run: cargo test --workspace --all-targets
+
+      - name: Release build
+        run: cargo build --release --workspace
+
+      - name: Package contents
+        run: |
+          cargo package --list -p kanban-core
+          cargo package --list -p kanban-tui
+          cargo package --list -p kanban-mcp
+
+      - name: Package check
+        run: |
+          cargo package -p kanban-core
+          cargo package -p kanban-tui --no-verify
+          cargo package -p kanban-mcp --no-verify

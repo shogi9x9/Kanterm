@@ -1,0 +1,124 @@
+# デザイン
+
+English version: [DESIGN.md](DESIGN.md)
+
+terminal UI と MCP server を持つローカル専用のタスク実行ストアを、AI エージェントと共有する
+設計を、採択済みの方針に沿って整理したものです。TUI は人間の監査/介入パネル、
+MCP は agent の実行面として扱います。
+
+## 目標と制約
+
+- **ローカル専用・単一ユーザー**。クラウド、サーバ、認証は前提にしない。
+- **Terminal UX**。通常の terminal で直接起動でき、tmux popup binding などの任意
+  launcher からも開ける。何度も起動・終了するため、起動体感を軽く保つ。
+- **エージェントとデータ整合**。TUI で見えるカードと MCP で編集されるカードは
+  同一データを共有し、同時編集を許容する。
+- **実行状態の永続化**。handoff、実行メタデータ、claim、検証結果、board-level
+  実行規約、memory を残し、再起動や context compaction 後も再開できるようにする。
+
+## 技術選定
+
+| 観点 | 選定 | 理由 |
+| --- | --- | --- |
+| 言語 / TUI | Rust + ratatui | 単一ネイティブバイナリで terminal 起動が速い |
+| 永続化 | rusqlite を使った SQLite (WAL) | 読み取り/書き込み同時運用、トランザクション可 |
+| MCP | rmcp (stdio) | 公式 Rust SDK を使い、言語統一で実装負荷を抑制 |
+
+Node/Python は起動遅延が大きく、頻繁に開くローカル tool には合わないため採用しません。
+
+## クレート分割
+
+- `kanban-core`: スキーマ、マイグレーション、ドメインロジックと書き込みロジックを
+  一元管理する。
+- `kanban-tui`: ratatui ベースのフロントエンド。同期実装。
+- `kanban-mcp`: 非同期 rmcp サーバ。`Store` を Mutex で握って `kanban-core` を呼び出す。
+
+## ボードモデル
+
+- 既定の **Backlog** ボードは `backlog` slug を持つ予約済みの inbox / planning ボード。
+- Backlog ボードは **Backlog** 列 1 本だけを持ち、列の追加/変更/削除/順序入れ替えを拒否する。
+- `Backlog` という名前の追加ボードは作成できない。
+- プロジェクト用ボードは列テンプレートから作成する。開発者向けの既定は
+  `workflow`（**Todo / In progress / Testing / Waiting for release**）。明示的に
+  `planning`（**Backlog / Today / This week / This month**）や
+  `simple`（**Todo / Doing / Done**）も選べる。作成後の列は列管理の対象になる。
+- Backlog ボードからプロジェクトボードへ移すときは、MCP では `update_card.move_to_board`
+  を使う。
+- TUI ではカード選択中に `M` で移動先ボード picker と列 picker を開き、同じ core
+  更新経路でボード横断移動する。
+- 保護された Backlog ボード上では同じ操作を `send-project` と表示し、inbox から
+  プロジェクトボードへ送るトリアージ操作として見せる。
+- 詳細画面の `x` は任意の完了メモ付きでカードを完了し、アーカイブ、`agent_state=done`、
+  進行中 handoff field のクリア、claim 解除をまとめて行う。
+
+## 同時実行モデル
+
+短命な TUI と長寿命の MCP サーバが同時書き込みし得るため、
+以下を `kanban-core` で担保しています。
+
+- `journal_mode = WAL`
+- `busy_timeout = 5000ms`
+- 全書き込みを `BEGIN IMMEDIATE` で開始
+- `PRAGMA foreign_keys = ON`
+
+TUI 側は 800ms のアイドルポーリングで `PRAGMA data_version` を監視し、
+外部更新があったときのみ再ロードします（上限約 800ms）。
+
+## スキーマ/マイグレーション
+
+- `PRAGMA user_version` ベースの順次 SQL マイグレーションを採用。
+- 開封時に未適用分を `IMMEDIATE` トランザクションで実行。
+- DB バージョンが実行バイナリより新しい場合は起動を失敗させます。
+
+主要テーブル: `boards`, `columns`, `cards`, `labels`, `card_labels`,
+`activity_logs`, `ui_state`, `agent_registrations`。
+
+重要設計: `cards.position REAL` の分数インデックス、`cards.updated_at` の
+楽観的排他準拠。
+
+`activity_logs` は `actor` (`tui` / `agent`) を持たせているため、
+人間とエージェントの更新履歴を混在で追跡します。
+ボード横断移動では `move_board` activity に旧 key / 新 key / 移動元ボード /
+移動先ボードを構造化して記録し、移動先で key が再発行されても追跡できるようにします。
+`card_search` は core の書き込み経路で同期される FTS5 virtual table です。
+`list_cards(query=...)` は title / body / labels / agent workflow fields をこの index で検索し、
+短い語や記号を含む query では従来の literal substring fallback も併用します。
+
+## MCP 仕様
+
+初期は最小限のツール構成を採用。主要ポイントは以下。
+
+- コア操作は `get_board`, `list_cards`, `get_card`, `create_card`, `create_cards`, `update_card`
+- agent は `register_agent` で `codex#abc123` のような割当 identity と
+  claim token を取得し、claim / renew / release 時に token を渡す
+- `move` は `update_card` の `column` で実現
+- `search` は `list_cards(query=...)`
+- 次に実行できる作業の選択は `list_cards(queue=...)`
+- board/project 単位の検証コマンド、完了方針、repo 固有規約、release gate は
+  `manage_boards` の `agent_context` に保存し、カード単位の `next_action` より上位の
+  実行規約として扱う
+- キー参照 (`KB-12`) のみを公開し、内部 ID は外部露出しない
+- 戻り値は JSON ではなくテキスト/Markdown
+
+## agent 実行モデル
+
+- `priority` は人間/事業上の優先度を表す。
+- `agent_weight` は agent 実行コスト/適性を `1..5` で表す。
+- `agent_effort` は推論・実行負荷、`suggested_model` はモデル候補、
+  `expected_tokens` は想定 token 量を表す。
+- `human_intervention` は `none` / `review` / `decision` / `execution` で、
+  自律実行できるか、人間の確認や判断が必要かを分ける。
+- spec / plan は `create_cards` で順序付きの永続カードにし、
+  `alias` と `depends_on` でDAGを表現し、`acceptance_criteria`、
+  `next_action`、実行メタデータを付ける。
+- agent は `list_cards(queue="executable")` で候補を選び、`get_card` で詳細確認、
+  `register_agent` と claim 後に実行する。
+- 実行後は `last_verification` と `complete_note`、必要なら `record_memory` で
+  検証結果と判断理由を残す。
+
+依存グラフは first-class data です。`dependency_graph` でedgeとstageを確認でき、
+`A -> B/C/D 並列 -> E` のような fan-out / fan-in を表現できます。
+
+## リリース時の注意
+
+`DESIGN` と実装の更新を合わせ、変更内容を常に設計文書へ反映します。

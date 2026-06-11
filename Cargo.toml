@@ -1,0 +1,32 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/kanban-core",
+    "crates/kanban-tui",
+    "crates/kanban-mcp",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.90"
+description = "Local kanban board with a terminal UI and MCP server for AI agents"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/shogi9x9/Kanterm"
+
+[workspace.dependencies]
+kanban-core = { path = "crates/kanban-core", version = "0.1.0" }
+anyhow = "1"
+getrandom = "0.3.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10.9"
+
+# Fast startup for frequent local terminal launches: small, fast binaries.
+[profile.release]
+lto = true
+strip = true
+opt-level = "z"
+codegen-units = 1
+panic = "abort"
