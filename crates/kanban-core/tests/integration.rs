@@ -970,6 +970,28 @@ fn card_agent_execution_metadata_update_clear_validate_and_persist() {
 }
 
 #[test]
+fn agent_registration_token_lifetime_defaults_and_caps() {
+    let db = TempDb(temp_db("agent-token-lifetime"));
+    let mut s = Store::open(&db.0).unwrap();
+
+    let defaulted = s.register_agent("codex", None, None, None).unwrap();
+    let default_lifetime = defaulted.registration.expires_at - defaulted.registration.registered_at;
+    assert!(
+        (119 * 60_000..=120 * 60_000).contains(&default_lifetime),
+        "default lifetime was {default_lifetime}"
+    );
+
+    let capped = s
+        .register_agent("claude", None, None, Some(7 * 24 * 60))
+        .unwrap();
+    let capped_lifetime = capped.registration.expires_at - capped.registration.registered_at;
+    assert!(
+        (23 * 60 * 60_000..=24 * 60 * 60_000).contains(&capped_lifetime),
+        "capped lifetime was {capped_lifetime}"
+    );
+}
+
+#[test]
 fn card_claims_conflict_expire_and_release() {
     let db = TempDb(temp_db("card-claims"));
     let mut s = Store::open(&db.0).unwrap();
