@@ -6,8 +6,8 @@ use crate::id::new_id;
 use crate::naming::derive_slug;
 use crate::{now_ms, AgentRegistration, AgentRegistrationResult, Store};
 
-const DEFAULT_AGENT_LEASE_MINUTES: i64 = 24 * 60;
-const MAX_AGENT_LEASE_MINUTES: i64 = 7 * 24 * 60;
+const DEFAULT_AGENT_LEASE_MINUTES: i64 = 2 * 60;
+const MAX_AGENT_LEASE_MINUTES: i64 = 24 * 60;
 const MS_PER_MINUTE: i64 = 60 * 1000;
 
 impl Store {
