@@ -116,7 +116,7 @@ impl App {
                         body.push('\n');
                         body.push('\n');
                     }
-                    body.push_str(&format!("[完了メモ] {text}"));
+                    body.push_str(&format!("[completion note] {text}"));
                 }
                 let patch = CardPatch {
                     archived: Some(true),

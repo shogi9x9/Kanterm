@@ -21,9 +21,9 @@ pub(crate) fn due_suffix(card: &Card) -> String {
 
 pub(crate) fn complete_note_body(base: &str, note: &str) -> String {
     if base.trim().is_empty() {
-        format!("[完了メモ] {note}")
+        format!("[completion note] {note}")
     } else {
-        format!("{base}\n[完了メモ] {note}")
+        format!("{base}\n[completion note] {note}")
     }
 }
 

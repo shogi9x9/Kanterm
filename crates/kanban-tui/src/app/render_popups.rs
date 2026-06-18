@@ -41,7 +41,7 @@ impl App {
         );
         f.render_widget(
             Paragraph::new(Span::styled(
-                "Enter で確定  / Esc で中断",
+                "Enter confirm  /  Esc cancel",
                 Style::default().fg(theme().hint),
             )),
             hint_area,

@@ -256,7 +256,7 @@ pub(crate) struct UpdateParams {
     #[serde(default)]
     pub(crate) expected_updated_at: Option<i64>,
     /// Optional note added when completing a card. Appended as
-    /// "[完了メモ] ..." and archived=true.
+    /// "[completion note] ..." and archived=true.
     #[serde(default)]
     pub(crate) complete_note: Option<String>,
 }
