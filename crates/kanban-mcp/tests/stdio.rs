@@ -1119,7 +1119,7 @@ fn update_card_with_complete_note_appends_body_and_archives() {
 
     let card = s.call(4, "get_card", json!({"key":"KB-1"}));
     assert!(card.contains("実装内容"));
-    assert!(card.contains("[完了メモ] CI 通過を確認"));
+    assert!(card.contains("[completion note] CI 通過を確認"));
     assert!(card.contains("agent_state: done"));
     assert!(card.contains("next_action: -"));
     assert!(card.contains("blocked_reason: -"));
