@@ -12,7 +12,7 @@ impl App {
     pub(crate) fn draw_status(&self, f: &mut Frame, area: Rect) {
         let line = match &self.mode {
             Mode::Input { .. } => Line::from(Span::styled(
-                " Enter で確定   Esc で中断 (入力中) ",
+                " Enter confirm   Esc cancel (editing) ",
                 Style::default().fg(theme().help),
             )),
             Mode::LabelPicker { .. } => Line::from(Span::styled(

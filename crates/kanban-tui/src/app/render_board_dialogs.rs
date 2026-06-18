@@ -372,7 +372,7 @@ impl App {
         f.set_cursor_position(Position::new(input_area.x + 2 + cursor, input_area.y));
         f.render_widget(
             Paragraph::new(Span::styled(
-                "type `delete` and Enter · Esc でキャンセル",
+                "type `delete` and Enter · Esc cancel",
                 Style::default().fg(theme().hint),
             )),
             hint_area,
