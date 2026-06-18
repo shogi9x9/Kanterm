@@ -80,19 +80,56 @@ out = tool(
 )
 print("board:", out.strip(), file=sys.stderr)
 
+# alias -> (column, title, priority, labels, extra update_card fields).
+# `extra` carries dependencies and agent execution metadata so the dependency
+# graph (`g`) and the agent metadata panel (detail -> `m`) have something to show.
 CARDS = [
-    ("Todo", "Design import/export schema", 1, ["docs"]),
-    ("Todo", "Add CJK width handling to body editor", 2, ["bug"]),
-    ("Todo", "Theme: high-contrast variant", 0, ["ui"]),
-    ("In progress", "Wire MCP claim leases into TUI header", 2, ["mcp"]),
-    ("In progress", "Dependency graph: executable stages", 1, ["mcp", "graph"]),
-    ("Testing", "Backup/restore round-trip checks", 1, ["release"]),
-    ("Waiting for release", "v0.2 changelog + notes", 0, ["release", "docs"]),
+    ("A", "Todo", "Design import/export schema", 1, ["docs"], {
+        "agent_weight": 1, "agent_effort": "low", "expected_tokens": 1500,
+        "next_action": "Draft the JSON/Markdown schema and review fields.",
+        "acceptance_criteria": "Schema covers cards, columns, labels, and metadata.",
+    }),
+    ("B", "Todo", "Add CJK width handling to body editor", 2, ["bug"], {
+        "agent_weight": 3, "agent_effort": "medium", "expected_tokens": 4000,
+        "human_intervention": "review",
+        "next_action": "Measure display width per grapheme and fix cursor math.",
+        "acceptance_criteria": "Mixed CJK/ASCII lines render with a correct cursor.",
+    }),
+    ("C", "Todo", "Theme: high-contrast variant", 0, ["ui"], {
+        "agent_weight": 2, "agent_effort": "low", "expected_tokens": 2000,
+        "human_intervention": "decision",
+    }),
+    ("D", "In progress", "Wire MCP claim leases into TUI header", 2, ["mcp"], {
+        "agent_weight": 3, "agent_effort": "medium", "expected_tokens": 5000,
+        "depends_on": ["A"],
+        "next_action": "Render [claimed:...] / [claim-expired:...] in the header.",
+        "acceptance_criteria": "Active and expired leases are visible in the TUI.",
+    }),
+    ("E", "In progress", "Dependency graph: executable stages", 1, ["mcp", "graph"], {
+        "agent_weight": 4, "agent_effort": "high-reasoning",
+        "suggested_model": "claude-opus", "expected_tokens": 8000,
+        "human_intervention": "review", "depends_on": ["A"],
+        "next_action": "Compute executable stages and render A -> B/C -> D.",
+        "acceptance_criteria": "Graph shows edges, stages, and blocked cards.",
+    }),
+    ("F", "Testing", "Backup/restore round-trip checks", 1, ["release"], {
+        "agent_weight": 2, "agent_effort": "medium", "expected_tokens": 3000,
+        "depends_on": ["D", "E"],
+        "next_action": "Add a VACUUM INTO round-trip test with schema guard.",
+        "acceptance_criteria": "Backup then restore reproduces the board exactly.",
+    }),
+    ("G", "Waiting for release", "v0.2 changelog + notes", 0, ["release", "docs"], {
+        "agent_weight": 1, "agent_effort": "low", "expected_tokens": 1200,
+        "depends_on": ["F"],
+    }),
 ]
-for col, title, prio, labels in CARDS:
+
+alias_to_key = {}
+for alias, col, title, prio, labels, _extra in CARDS:
     created = tool("create_card", {"board": BOARD_SLUG, "column": col, "title": title})
     key = re.search(r"[A-Z]{2,}-\d+", created)
-    if key and (prio or labels):
+    if key:
+        alias_to_key[alias] = key.group(0)
         args = {"board": BOARD_SLUG, "key": key.group(0)}
         if prio:
             args["priority"] = prio
@@ -100,6 +137,18 @@ for col, title, prio, labels in CARDS:
             args["add_labels"] = labels
         tool("update_card", args)
     print("card:", col, "/", title, "->", created.strip(), file=sys.stderr)
+
+# Second pass: dependencies (resolved to real keys) and execution metadata.
+for alias, _col, _title, _prio, _labels, extra in CARDS:
+    if not extra or alias not in alias_to_key:
+        continue
+    args = {"board": BOARD_SLUG, "key": alias_to_key[alias]}
+    for field, value in extra.items():
+        if field == "depends_on":
+            args["depends_on"] = [alias_to_key[a] for a in value if a in alias_to_key]
+        else:
+            args[field] = value
+    tool("update_card", args)
 
 tool(
     "manage_boards",
