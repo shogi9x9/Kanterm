@@ -48,8 +48,11 @@ impl App {
             return Ok(false);
         }
         self.data_version = v;
-        self.reload()?;
-        self.status = "↻ synced external change".into();
+        let previous_status = self.status.clone();
+        self.resync_external()?;
+        if self.status == previous_status {
+            self.status = "↻ synced external change".into();
+        }
         Ok(true)
     }
 
