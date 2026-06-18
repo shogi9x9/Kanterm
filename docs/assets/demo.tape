@@ -19,31 +19,35 @@ Show
 
 Sleep 1.4s
 Down           # move selection within the column
-Sleep 700ms
-Up
 Sleep 600ms
+Up
+Sleep 500ms
 
 Enter          # open the card detail modal
-Sleep 2s
+Sleep 1.6s
+Type "m"       # agent execution metadata (weight / effort / model / tokens / gate)
+Sleep 2.6s
+Escape         # back to detail
+Sleep 600ms
 Escape         # back to the board
 Sleep 700ms
 
 Type "L"       # push the selected card one column to the right
-Sleep 1.3s
+Sleep 1.2s
 Type "H"       # and pull it back
-Sleep 1s
+Sleep 900ms
+
+Type "g"       # dependency graph: edges, executable stages, blockers
+Sleep 3s
+Escape
+Sleep 700ms
 
 Type "/"       # filter cards by title / body / label
 Sleep 500ms
 Type "graph"
-Sleep 1.4s
+Sleep 1.3s
 Escape         # clear filter
 Sleep 700ms
-
-Type "b"       # open the board switcher
-Sleep 1.6s
-Escape
-Sleep 800ms
 
 Type "q"       # quit
 Sleep 500ms
