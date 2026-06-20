@@ -1,7 +1,7 @@
-use super::{claim_is_active, App};
+use super::App;
 use crate::layout::centered;
 use crate::theme::theme;
-use kanban_core::{Card, DependencyStagePlan, HumanIntervention};
+use kanban_core::{classify_graph_node, now_ms, DependencyStagePlan};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Clear, Paragraph, Wrap};
@@ -120,6 +120,7 @@ impl App {
 
     fn node_states(&self, stages: &DependencyStagePlan) -> anyhow::Result<HashMap<String, String>> {
         let mut states = HashMap::new();
+        let now = now_ms();
         for key in stages
             .ready_stages
             .iter()
@@ -128,30 +129,13 @@ impl App {
         {
             if let Some(card) = self.card_by_key(key) {
                 let readiness = self.store.card_readiness(&self.board.id, key)?;
-                states.insert(key.clone(), compact_node_state(card, &readiness));
+                states.insert(
+                    key.clone(),
+                    classify_graph_node(card, &readiness, now).label(),
+                );
             }
         }
         Ok(states)
-    }
-}
-
-fn compact_node_state(card: &Card, readiness: &kanban_core::CardReadiness) -> String {
-    if card.agent_state == "done" {
-        return "done".into();
-    }
-    if claim_is_active(card) {
-        return "running".into();
-    }
-    match card.human_gate() {
-        Some(HumanIntervention::Review) => "human:review".into(),
-        Some(HumanIntervention::Decision) => "human:decision".into(),
-        Some(HumanIntervention::Execution) => "human:execution".into(),
-        None if !readiness.ready => "dep-blocked".into(),
-        None if card.blocked_reason.is_some() => "blocked".into(),
-        None if card.next_action.is_none() || card.acceptance_criteria.is_none() => {
-            "missing".into()
-        }
-        None => "ready".into(),
     }
 }
 

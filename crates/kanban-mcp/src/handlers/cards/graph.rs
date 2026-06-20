@@ -1,4 +1,4 @@
-use kanban_core::{now_ms, Card, HumanIntervention, Store};
+use kanban_core::{classify_graph_node, now_ms, Card, Store};
 use rmcp::ErrorData;
 use std::collections::HashMap;
 
@@ -30,7 +30,7 @@ pub(crate) fn dependency_graph(
         focus,
     );
     let stages = store.dependency_stage_plan(&board_id).map_err(internal)?;
-    let node_states = graph_node_states(store, &board_id, &stages)?;
+    let node_states = graph_node_states(store, &board_id, &stages, now_ms())?;
     let edges = if dependencies.is_empty() {
         "-".into()
     } else {
@@ -88,6 +88,7 @@ fn graph_node_states(
     store: &Store,
     board_id: &str,
     stages: &kanban_core::DependencyStagePlan,
+    now: i64,
 ) -> Result<HashMap<String, String>, ErrorData> {
     let mut states = HashMap::new();
     for key in stages
@@ -100,36 +101,12 @@ fn graph_node_states(
             continue;
         };
         let readiness = store.card_readiness(board_id, key).map_err(internal)?;
-        states.insert(key.clone(), graph_node_state(&card, &readiness));
+        states.insert(
+            key.clone(),
+            classify_graph_node(&card, &readiness, now).label(),
+        );
     }
     Ok(states)
-}
-
-fn graph_node_state(card: &Card, readiness: &kanban_core::CardReadiness) -> String {
-    if card.agent_state == "done" || card.archived_at.is_some() {
-        return "done".into();
-    }
-    if claim_is_active_for_graph(card) {
-        return "running".into();
-    }
-    match card.human_gate() {
-        Some(HumanIntervention::Review) => "human:review".into(),
-        Some(HumanIntervention::Decision) => "human:decision".into(),
-        Some(HumanIntervention::Execution) => "human:execution".into(),
-        None if !readiness.ready => "dep-blocked".into(),
-        None if card.blocked_reason.is_some() => "blocked".into(),
-        None if card.next_action.is_none() || card.acceptance_criteria.is_none() => {
-            "missing".into()
-        }
-        None => "ready".into(),
-    }
-}
-
-fn claim_is_active_for_graph(card: &Card) -> bool {
-    card.claimed_by.is_some()
-        && card
-            .lease_expires_at
-            .is_some_and(|expires_at| expires_at > now_ms())
 }
 
 fn graph_node(key: &str, states: &HashMap<String, String>) -> String {
@@ -155,7 +132,7 @@ fn filter_dependency_graph_edges(
                 let Some(downstream) = card_by_key.get(dep.downstream_key.as_str()) else {
                     return false;
                 };
-                if is_closed(upstream) || is_closed(downstream) {
+                if upstream.is_closed() || downstream.is_closed() {
                     return false;
                 }
             }
@@ -166,8 +143,4 @@ fn filter_dependency_graph_edges(
             }
         })
         .collect()
-}
-
-fn is_closed(card: &Card) -> bool {
-    card.agent_state == "done" || card.archived_at.is_some()
 }
