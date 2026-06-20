@@ -7,8 +7,9 @@ use crate::error::{bad_param, internal};
 use crate::lookup::{columns_by_id, resolve_board};
 use crate::params::{BoardParam, KeyParams, ListParams};
 use crate::render::{
-    activity_lines, claim_detail, claim_suffix, due_suffix, execution_note_lines, label_suffix,
-    memory_lines, metadata_value, priority,
+    activity_lines, board_execution_suffix, claim_detail, claim_suffix, due_suffix,
+    execution_note_lines, execution_suffix, label_suffix, memory_lines, metadata_i64,
+    metadata_value, priority,
 };
 
 use super::queue::{classify_queue, dependency_suffix, queue_suffix, QueueMode};
@@ -298,12 +299,6 @@ pub(crate) fn get_card(
     ))
 }
 
-fn metadata_i64(value: Option<i64>) -> String {
-    value
-        .map(|v| v.to_string())
-        .unwrap_or_else(|| "-".to_string())
-}
-
 fn dependency_context(store: &Store, board_id: &str, card: &Card) -> Result<String, ErrorData> {
     let upstream = store
         .card_upstream_dependencies(board_id, &card.key)
@@ -349,49 +344,6 @@ fn list_or_dash(values: Vec<&str>) -> String {
         "-".into()
     } else {
         values.join(", ")
-    }
-}
-
-fn board_execution_suffix(c: &Card) -> String {
-    let mut parts = Vec::new();
-    if let Some(weight) = c.agent_weight {
-        parts.push(format!("w:{weight}"));
-    }
-    if let Some(human) = c.human_intervention.as_deref() {
-        if human != "none" {
-            parts.push(format!("human:{human}"));
-        }
-    }
-    if parts.is_empty() {
-        String::new()
-    } else {
-        format!(" [{}]", parts.join(" "))
-    }
-}
-
-fn execution_suffix(c: &Card) -> String {
-    let mut parts = Vec::new();
-    if let Some(weight) = c.agent_weight {
-        parts.push(format!("w:{weight}"));
-    }
-    if let Some(effort) = c.agent_effort.as_deref() {
-        parts.push(format!("effort:{effort}"));
-    }
-    if let Some(model) = c.suggested_model.as_deref() {
-        parts.push(format!("model:{model}"));
-    }
-    if let Some(tokens) = c.expected_tokens {
-        parts.push(format!("tokens:{tokens}"));
-    }
-    if let Some(human) = c.human_intervention.as_deref() {
-        if human != "none" {
-            parts.push(format!("human:{human}"));
-        }
-    }
-    if parts.is_empty() {
-        String::new()
-    } else {
-        format!(" [{}]", parts.join(" "))
     }
 }
 
