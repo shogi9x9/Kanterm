@@ -6,10 +6,10 @@ use rmcp::ErrorData;
 use std::collections::HashMap;
 
 use crate::error::{bad_param, internal};
-use crate::lookup::{columns_by_id, resolve_board};
+use crate::lookup::{columns_by_id, resolve_board, resolve_or_create_project_board};
 use crate::params::{
-    BoardParam, CreateCardsParams, CreateParams, DependencyGraphParams, KeyParams, ListParams,
-    UpdateParams,
+    BoardParam, CreateBacklogCardParams, CreateCardsParams, CreateParams, DependencyGraphParams,
+    KeyParams, ListParams, UpdateParams,
 };
 use crate::render::{
     activity_lines, claim_detail, claim_suffix, complete_note_body, due_suffix,
@@ -471,15 +471,21 @@ fn is_closed(card: &Card) -> bool {
     card.agent_state == "done" || card.archived_at.is_some()
 }
 
+fn cleanup_created_board(store: &mut Store, board_id: &str) {
+    let _ = store.archive_board(board_id);
+    let _ = store.delete_board(board_id);
+}
+
 pub(crate) fn create_card(
     store: &mut Store,
-    default_board_id: &str,
+    _default_board_id: &str,
     p: CreateParams,
 ) -> Result<String, ErrorData> {
-    let board_id = resolve_board(store, default_board_id, p.board.as_deref())?;
+    let destination = resolve_or_create_project_board(store, p.board.as_deref(), "create_card")?;
+    let column = p.column.as_deref().unwrap_or("first column");
     let card = store
         .create_card(
-            &board_id,
+            &destination.id,
             p.column.as_deref(),
             &p.title,
             p.body.as_deref().unwrap_or(""),
@@ -487,22 +493,33 @@ pub(crate) fn create_card(
         )
         .map_err(internal)?;
     Ok(format!(
-        "created {} in {}",
+        "created {} in board '{}' (board: {}) column '{}'",
         card.key,
-        p.column.as_deref().unwrap_or("first column")
+        destination.slug,
+        if destination.created {
+            "created"
+        } else {
+            "existing"
+        },
+        column
     ))
 }
 
 pub(crate) fn create_cards(
     store: &mut Store,
-    default_board_id: &str,
+    _default_board_id: &str,
     p: CreateCardsParams,
 ) -> Result<String, ErrorData> {
     if p.cards.is_empty() {
         return Err(bad_param("cards must not be empty"));
     }
-    let board_id = resolve_board(store, default_board_id, p.board.as_deref())?;
-    preflight_create_cards(store, &board_id, &p.cards)?;
+    let destination = resolve_or_create_project_board(store, p.board.as_deref(), "create_cards")?;
+    if let Err(err) = preflight_create_cards(store, &destination.id, &p.cards) {
+        if destination.created {
+            cleanup_created_board(store, &destination.id);
+        }
+        return Err(err);
+    }
     let drafts = p
         .cards
         .into_iter()
@@ -521,14 +538,49 @@ pub(crate) fn create_cards(
             depends_on: item.depends_on.unwrap_or_default(),
         })
         .collect::<Vec<_>>();
-    let lines = store
-        .create_cards_from_plan(&board_id, &drafts, "agent")
-        .map_err(internal)?
-        .into_iter()
-        .enumerate()
-        .map(|(idx, card)| format!("{} {} {}", idx + 1, card.key, card.title))
-        .collect::<Vec<_>>();
+    let created_cards = match store.create_cards_from_plan(&destination.id, &drafts, "agent") {
+        Ok(cards) => cards,
+        Err(err) => {
+            if destination.created {
+                cleanup_created_board(store, &destination.id);
+            }
+            return Err(internal(err));
+        }
+    };
+    let mut lines = vec![format!(
+        "created {} cards in board '{}' (board: {})",
+        created_cards.len(),
+        destination.slug,
+        if destination.created {
+            "created"
+        } else {
+            "existing"
+        }
+    )];
+    lines.extend(
+        created_cards
+            .into_iter()
+            .enumerate()
+            .map(|(idx, card)| format!("{} {} {}", idx + 1, card.key, card.title)),
+    );
     Ok(lines.join("\n"))
+}
+
+pub(crate) fn create_card_in_backlog(
+    store: &mut Store,
+    p: CreateBacklogCardParams,
+) -> Result<String, ErrorData> {
+    let backlog = store.ensure_default_board().map_err(internal)?;
+    let card = store
+        .create_card(
+            &backlog.id,
+            None,
+            &p.title,
+            p.body.as_deref().unwrap_or(""),
+            "agent",
+        )
+        .map_err(internal)?;
+    Ok(format!("created {} in Backlog (board: backlog)", card.key))
 }
 
 pub(crate) fn update_card(

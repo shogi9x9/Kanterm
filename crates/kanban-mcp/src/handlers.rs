@@ -6,10 +6,10 @@ mod memories;
 
 pub(crate) use agents::register_agent;
 pub(crate) use boards::manage_boards;
-pub(crate) use cards::create_cards;
 pub(crate) use cards::{
     create_card, dependency_graph, get_board, get_card, list_cards, update_card,
 };
+pub(crate) use cards::{create_card_in_backlog, create_cards};
 pub(crate) use columns::manage_columns;
 pub(crate) use memories::{recall_memories, record_memory};
 

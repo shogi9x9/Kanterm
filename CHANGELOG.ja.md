@@ -6,6 +6,14 @@
 
 ## Unreleased
 
+- **破壊的変更 (MCP):** `create_card` と `create_cards` で `board` を必須化。
+  既存のプロジェクトボード slug を渡すとそのボードへ、未知の名前を渡すと
+  workflow テンプレートのボードを新規作成してカードを追加します。`board` を
+  省略した場合は、従来の Backlog への暗黙フォールバックではなくエラーになります。
+- MCP ツール `create_card_in_backlog` を追加。Backlog インボックスは明示的な
+  オプトイン専用となり、`create_card`/`create_cards` からは到達できません。
+- `create_card`/`create_cards` のレスポンスに、作成先ボードの slug と、ボードが
+  既存か新規作成かを含めるようにしました。
 - ローカル TUI kanban ボードを SQLite で提供
 - AI エージェント向け MCP サーバを追加
 - 記憶ログの追加（参照履歴と月次クリーンアップ）
