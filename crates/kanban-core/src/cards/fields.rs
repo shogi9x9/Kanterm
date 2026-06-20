@@ -4,7 +4,7 @@ use rusqlite::{params, OptionalExtension, Transaction};
 use crate::labels::upsert_label;
 use crate::position::next_position;
 use crate::text::trimmed_optional;
-use crate::{parse_date, CardPatch};
+use crate::{parse_date, CardPatch, HumanIntervention};
 
 pub(super) fn apply_scalar_fields(
     tx: &Transaction<'_>,
@@ -302,20 +302,10 @@ pub(super) fn apply_execution_metadata(
         )?;
     }
     if let Some(human_intervention) = &patch.human_intervention {
-        let value = trimmed_optional(human_intervention);
-        if let Some(value) = value {
-            match value {
-                "none" | "review" | "decision" | "execution" => {}
-                _ => {
-                    return Err(anyhow!(
-                        "human_intervention must be none, review, decision, or execution"
-                    ))
-                }
-            }
-        }
+        HumanIntervention::parse(human_intervention).map_err(|message| anyhow!(message))?;
         tx.execute(
             "UPDATE cards SET human_intervention = ?1 WHERE id = ?2",
-            params![value, card_id],
+            params![trimmed_optional(human_intervention), card_id],
         )?;
     }
     Ok(())

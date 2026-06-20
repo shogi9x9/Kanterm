@@ -1,4 +1,4 @@
-use kanban_core::{now_ms, Card, Store};
+use kanban_core::{now_ms, Card, HumanIntervention, Store};
 use rmcp::ErrorData;
 use std::collections::HashMap;
 
@@ -112,14 +112,16 @@ fn graph_node_state(card: &Card, readiness: &kanban_core::CardReadiness) -> Stri
     if claim_is_active_for_graph(card) {
         return "running".into();
     }
-    match card.human_intervention.as_deref().unwrap_or("none") {
-        "review" => "human:review".into(),
-        "decision" => "human:decision".into(),
-        "execution" => "human:execution".into(),
-        _ if !readiness.ready => "dep-blocked".into(),
-        _ if card.blocked_reason.is_some() => "blocked".into(),
-        _ if card.next_action.is_none() || card.acceptance_criteria.is_none() => "missing".into(),
-        _ => "ready".into(),
+    match card.human_gate() {
+        Some(HumanIntervention::Review) => "human:review".into(),
+        Some(HumanIntervention::Decision) => "human:decision".into(),
+        Some(HumanIntervention::Execution) => "human:execution".into(),
+        None if !readiness.ready => "dep-blocked".into(),
+        None if card.blocked_reason.is_some() => "blocked".into(),
+        None if card.next_action.is_none() || card.acceptance_criteria.is_none() => {
+            "missing".into()
+        }
+        None => "ready".into(),
     }
 }
 

@@ -2,7 +2,7 @@ use anyhow::Result;
 
 use crate::app::{claim_is_active, App, UI_FOCUS, UI_SELECTED};
 use crate::mode::Mode;
-use kanban_core::{Card, CardReadiness};
+use kanban_core::{Card, CardReadiness, HumanIntervention};
 
 impl App {
     pub(crate) fn reload(&mut self) -> Result<()> {
@@ -173,10 +173,9 @@ impl App {
 }
 
 fn human_intervention_kind(value: Option<&str>) -> Option<&str> {
-    match value {
-        Some("review" | "decision" | "execution") => value,
-        _ => None,
-    }
+    value
+        .and_then(|v| HumanIntervention::parse(v).ok().flatten())
+        .map(HumanIntervention::as_str)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -232,11 +231,11 @@ fn next_work_kind(card: &Card, readiness: &CardReadiness) -> Option<NextWorkKind
     if !readiness.ready {
         return Some(NextWorkKind::DependencyBlocked);
     }
-    match card.human_intervention.as_deref().unwrap_or("none") {
-        "review" => return Some(NextWorkKind::Review),
-        "decision" => return Some(NextWorkKind::Decision),
-        "execution" => return Some(NextWorkKind::HumanExecution),
-        _ => {}
+    match card.human_gate() {
+        Some(HumanIntervention::Review) => return Some(NextWorkKind::Review),
+        Some(HumanIntervention::Decision) => return Some(NextWorkKind::Decision),
+        Some(HumanIntervention::Execution) => return Some(NextWorkKind::HumanExecution),
+        None => {}
     }
     if card.next_action.is_none() || card.acceptance_criteria.is_none() {
         return Some(NextWorkKind::MissingContext);

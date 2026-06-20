@@ -33,8 +33,9 @@ pub use dates::{format_date, now_ms, parse_date, today_start_ms};
 pub use domain::{
     card_is_stale, priority_badge, priority_label, ActivityLog, AgentRegistration,
     AgentRegistrationResult, Board, Card, CardCreateDraft, CardDependency, CardPatch,
-    CardReadiness, Column, DependencyBlockedCard, DependencyBlocker, DependencyStagePlan, Label,
-    Memory, MemoryPatch, PRIORITY_HIGH, PRIORITY_LOW, PRIORITY_NORMAL, STALE_CARD_MS,
+    CardReadiness, Column, DependencyBlockedCard, DependencyBlocker, DependencyStagePlan,
+    HumanIntervention, Label, Memory, MemoryPatch, PRIORITY_HIGH, PRIORITY_LOW, PRIORITY_NORMAL,
+    STALE_CARD_MS,
 };
 
 /// Bump this whenever a migration is added. Stored in SQLite `PRAGMA user_version`.

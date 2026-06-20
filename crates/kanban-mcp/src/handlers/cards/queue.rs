@@ -1,4 +1,4 @@
-use kanban_core::{Card, CardReadiness};
+use kanban_core::{Card, CardReadiness, HumanIntervention};
 use rmcp::ErrorData;
 
 use crate::error::bad_param;
@@ -77,11 +77,11 @@ pub(super) fn classify_queue(card: &Card, now: i64, readiness: &CardReadiness) -
     if !readiness.ready {
         return QueueStatus::DependencyBlocked;
     }
-    match card.human_intervention.as_deref().unwrap_or("none") {
-        "review" => return QueueStatus::ReviewRequired,
-        "decision" => return QueueStatus::HumanDecision,
-        "execution" => return QueueStatus::HumanExecution,
-        _ => {}
+    match card.human_gate() {
+        Some(HumanIntervention::Review) => return QueueStatus::ReviewRequired,
+        Some(HumanIntervention::Decision) => return QueueStatus::HumanDecision,
+        Some(HumanIntervention::Execution) => return QueueStatus::HumanExecution,
+        None => {}
     }
     if card.acceptance_criteria.is_none() || card.next_action.is_none() {
         return QueueStatus::MissingContext;

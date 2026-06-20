@@ -1,7 +1,7 @@
 use super::{claim_is_active, App};
 use crate::layout::centered;
 use crate::theme::theme;
-use kanban_core::{Card, DependencyStagePlan};
+use kanban_core::{Card, DependencyStagePlan, HumanIntervention};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Clear, Paragraph, Wrap};
@@ -142,14 +142,16 @@ fn compact_node_state(card: &Card, readiness: &kanban_core::CardReadiness) -> St
     if claim_is_active(card) {
         return "running".into();
     }
-    match card.human_intervention.as_deref().unwrap_or("none") {
-        "review" => "human:review".into(),
-        "decision" => "human:decision".into(),
-        "execution" => "human:execution".into(),
-        _ if !readiness.ready => "dep-blocked".into(),
-        _ if card.blocked_reason.is_some() => "blocked".into(),
-        _ if card.next_action.is_none() || card.acceptance_criteria.is_none() => "missing".into(),
-        _ => "ready".into(),
+    match card.human_gate() {
+        Some(HumanIntervention::Review) => "human:review".into(),
+        Some(HumanIntervention::Decision) => "human:decision".into(),
+        Some(HumanIntervention::Execution) => "human:execution".into(),
+        None if !readiness.ready => "dep-blocked".into(),
+        None if card.blocked_reason.is_some() => "blocked".into(),
+        None if card.next_action.is_none() || card.acceptance_criteria.is_none() => {
+            "missing".into()
+        }
+        None => "ready".into(),
     }
 }
 

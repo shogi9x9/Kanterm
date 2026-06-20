@@ -1,4 +1,4 @@
-use kanban_core::Store;
+use kanban_core::{HumanIntervention, Store};
 use rmcp::ErrorData;
 use std::collections::{HashMap, HashSet};
 
@@ -53,12 +53,7 @@ pub(super) fn preflight_create_cards(
             }
         }
         if let Some(human) = item.human_intervention.as_deref() {
-            let human = human.trim();
-            if !human.is_empty() && !matches!(human, "none" | "review" | "decision" | "execution") {
-                return Err(bad_param(
-                    "human_intervention must be none, review, decision, or execution",
-                ));
-            }
+            HumanIntervention::parse(human).map_err(bad_param)?;
         }
     }
 
