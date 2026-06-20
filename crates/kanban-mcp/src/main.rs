@@ -17,9 +17,9 @@ use std::sync::Mutex;
 use instructions::SERVER_INSTRUCTIONS;
 use kanban_core::Store;
 use params::{
-    BoardParam, CreateCardsParams, CreateParams, DependencyGraphParams, KeyParams, ListParams,
-    ManageBoardsParams, ManageColumnsParams, RecallMemoriesParams, RecordMemoryParams,
-    RegisterAgentParams, UpdateParams,
+    BoardParam, CreateBacklogCardParams, CreateCardsParams, CreateParams, DependencyGraphParams,
+    KeyParams, ListParams, ManageBoardsParams, ManageColumnsParams, RecallMemoriesParams,
+    RecordMemoryParams, RegisterAgentParams, UpdateParams,
 };
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
@@ -99,16 +99,16 @@ impl Kanban {
         handlers::get_card(&store, &self.board_id, p)
     }
 
-    #[tool(description = "Create a new card. Returns the new card key.")]
+    #[tool(
+        description = "Create a new card on a project board. `board` is required: pass an existing project board slug or a new project board name; unknown values create a new project board with the workflow template. This tool never writes to Backlog; use create_card_in_backlog for the protected Backlog inbox. Returns the new card key, destination board slug, and whether the board already existed or was created."
+    )]
     fn create_card(&self, Parameters(p): Parameters<CreateParams>) -> Result<String, ErrorData> {
         let mut store = self.store();
         handlers::create_card(&mut store, &self.board_id, p)
     }
 
     #[tool(
-        description = "Create multiple ordered cards from a spec/plan. Each item may include \
-                       alias, depends_on, body, column, acceptance_criteria, next_action, and agent execution metadata. \
-                       Returns one created key per line in input order."
+        description = "Create multiple ordered cards on a project board. `board` is required: pass an existing project board slug or a new project board name; unknown values create a new workflow-template project board before importing the plan. This tool never writes to Backlog; use create_card_in_backlog for one-off Backlog inbox capture."
     )]
     fn create_cards(
         &self,
@@ -116,6 +116,17 @@ impl Kanban {
     ) -> Result<String, ErrorData> {
         let mut store = self.store();
         handlers::create_cards(&mut store, &self.board_id, p)
+    }
+
+    #[tool(
+        description = "Create one card in the protected Backlog inbox. Backlog is opt-in only and has a single Backlog column; use create_card or create_cards with a project board slug/name for project work."
+    )]
+    fn create_card_in_backlog(
+        &self,
+        Parameters(p): Parameters<CreateBacklogCardParams>,
+    ) -> Result<String, ErrorData> {
+        let mut store = self.store();
+        handlers::create_card_in_backlog(&mut store, p)
     }
 
     #[tool(

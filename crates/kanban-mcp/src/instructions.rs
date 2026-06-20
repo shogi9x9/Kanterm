@@ -7,7 +7,10 @@ update_card with a `column`. Move a card to another board by setting `move_to_bo
 (board slug) in update_card; when set, column moves apply on the destination board. \
 Use create_cards to turn a spec or execution plan into ordered durable cards; include \
 alias and depends_on for DAGs such as A -> B/C/D -> E, plus acceptance_criteria, \
-next_action, and execution metadata on each item when known. \
+next_action, and execution metadata on each item when known. create_card and create_cards require \
+`board`: pass an existing project board slug or a new project board name; unknown project names \
+create a workflow-template board automatically. These tools never write to the protected Backlog \
+board. Use create_card_in_backlog only when you intentionally want the Backlog inbox. \
 For recurring maintenance, create concrete follow-up cards instead of notes: split \
 refactor pressure, README/README.ja drift, DESIGN/DESIGN.ja drift, MCP instruction/tool \
 description drift, and board agent_context drift into separate cards with next_action and \

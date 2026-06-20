@@ -103,7 +103,8 @@ pub(crate) struct LastVerificationParam {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub(crate) struct CreateParams {
-    /// Board slug to target; defaults to the Backlog board.
+    /// Project board slug/name to target. Required. Existing slugs are used as-is;
+    /// unknown values create a workflow-template project board. Cannot target Backlog.
     #[serde(default)]
     pub(crate) board: Option<String>,
     /// Card title (required).
@@ -117,8 +118,18 @@ pub(crate) struct CreateParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+pub(crate) struct CreateBacklogCardParams {
+    /// Card title (required).
+    pub(crate) title: String,
+    /// Card body / description.
+    #[serde(default)]
+    pub(crate) body: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
 pub(crate) struct CreateCardsParams {
-    /// Board slug to target; defaults to the Backlog board.
+    /// Project board slug/name to target. Required. Existing slugs are used as-is;
+    /// unknown values create a workflow-template project board. Cannot target Backlog.
     #[serde(default)]
     pub(crate) board: Option<String>,
     /// Ordered cards to create.
