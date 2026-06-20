@@ -152,6 +152,7 @@ fn exposes_the_expected_tools() {
         names,
         vec![
             "create_card",
+            "create_card_in_backlog",
             "create_cards",
             "dependency_graph",
             "get_board",
@@ -166,6 +167,106 @@ fn exposes_the_expected_tools() {
             "update_card",
         ],
     );
+}
+
+#[test]
+fn create_card_requires_board_and_does_not_create_card() {
+    let mut s = Server::start();
+    let err = s.call_error(2, "create_card", json!({"title":"missing board"}));
+    assert!(err.contains("`board` is required"), "got: {err}");
+    assert!(s.call(3, "list_cards", json!({})).contains("no matching"));
+}
+
+#[test]
+fn create_cards_requires_board_and_does_not_create_card() {
+    let mut s = Server::start();
+    let err = s.call_error(
+        2,
+        "create_cards",
+        json!({"cards":[{"title":"missing board"}]}),
+    );
+    assert!(err.contains("`board` is required"), "got: {err}");
+    assert!(s.call(3, "list_cards", json!({})).contains("no matching"));
+}
+
+#[test]
+fn create_card_existing_project_slug_reports_existing_board() {
+    let mut s = Server::start();
+    s.call(
+        2,
+        "manage_boards",
+        json!({"action":"create","name":"Work","template":"workflow"}),
+    );
+    let created = s.call(
+        3,
+        "create_card",
+        json!({"board":"work","title":"project task","column":"Todo"}),
+    );
+    assert!(created.contains("created WOR-1 in board 'work' (board: existing) column 'Todo'"));
+}
+
+#[test]
+fn create_card_unknown_project_name_creates_board_and_card_there() {
+    let mut s = Server::start();
+    let created = s.call(
+        2,
+        "create_card",
+        json!({"board":"New Project","title":"first project task"}),
+    );
+    assert!(created.contains("board 'new-project' (board: created)"));
+    let board = s.call(3, "get_board", json!({"board":"new-project"}));
+    assert!(board.contains("first project task"), "got: {board}");
+    assert!(s.call(4, "list_cards", json!({})).contains("no matching"));
+}
+
+#[test]
+fn create_card_rejects_backlog_board_with_guidance() {
+    let mut s = Server::start();
+    let err = s.call_error(
+        2,
+        "create_card",
+        json!({"board":"backlog","title":"wrong inbox path"}),
+    );
+    assert!(
+        err.contains(
+            "create_card cannot target the Backlog board; use create_card_in_backlog instead."
+        ),
+        "got: {err}"
+    );
+}
+
+#[test]
+fn create_card_in_backlog_creates_card_in_backlog() {
+    let mut s = Server::start();
+    let created = s.call(2, "create_card_in_backlog", json!({"title":"inbox item"}));
+    assert!(created.contains("created KB-1 in Backlog (board: backlog)"));
+    let listed = s.call(3, "list_cards", json!({}));
+    assert!(listed.contains("KB-1"), "got: {listed}");
+    assert!(listed.contains("inbox item"), "got: {listed}");
+}
+
+#[test]
+fn create_cards_unknown_project_name_creates_one_board_with_dependencies() {
+    let mut s = Server::start();
+    let created = s.call(
+        2,
+        "create_cards",
+        json!({
+            "board":"Launch Plan",
+            "cards":[
+                {"alias":"A","title":"A setup","column":"Todo"},
+                {"alias":"B","title":"B ship","column":"Todo","depends_on":["A"]}
+            ]
+        }),
+    );
+    assert!(created.contains("created 2 cards in board 'launch-plan' (board: created)"));
+    assert!(created.contains("1 LP-1 A setup"));
+    assert!(created.contains("2 LP-2 B ship"));
+    let board = s.call(3, "get_board", json!({"board":"launch-plan"}));
+    assert!(board.contains("A setup"));
+    assert!(board.contains("B ship"));
+    let graph = s.call(4, "dependency_graph", json!({"board":"launch-plan"}));
+    assert!(graph.contains("- LP-1 -> LP-2"), "got: {graph}");
 }
 
 #[test]
@@ -615,7 +716,11 @@ fn create_update_move_and_label_flow() {
 fn update_card_rejects_invalid_execution_metadata() {
     let mut s = Server::start();
     assert!(s
-        .call(2, "create_card", json!({"title":"execution metadata"}))
+        .call(
+            2,
+            "create_card_in_backlog",
+            json!({"title":"execution metadata"})
+        )
         .contains("KB-1"));
 
     s.send(&json!({"jsonrpc":"2.0","id":3,"method":"tools/call",
@@ -1059,7 +1164,7 @@ fn dependency_graph_renders_stages_and_blockers() {
 fn execution_notes_are_append_only_resume_history() {
     let mut s = Server::start();
     assert!(s
-        .call(2, "create_card", json!({"title":"resume work"}))
+        .call(2, "create_card_in_backlog", json!({"title":"resume work"}))
         .contains("KB-1"));
     s.call(
         3,
@@ -1104,7 +1209,7 @@ fn update_card_with_complete_note_appends_body_and_archives() {
     assert!(s
         .call(
             2,
-            "create_card",
+            "create_card_in_backlog",
             json!({"title":"release","body":"実装内容"})
         )
         .contains("KB-1"));
@@ -1134,7 +1239,7 @@ fn update_card_with_complete_note_appends_body_and_archives() {
 fn update_card_claims_and_releases_lease() {
     let mut s = Server::start();
     assert!(s
-        .call(2, "create_card", json!({"title":"claimed work"}))
+        .call(2, "create_card_in_backlog", json!({"title":"claimed work"}))
         .contains("KB-1"));
     let codex = s.call(3, "register_agent", json!({"requested_name":"codex"}));
     let codex_identity = response_field(&codex, "assigned_identity:").to_string();
@@ -1177,7 +1282,7 @@ fn update_card_claims_and_releases_lease() {
 #[test]
 fn due_dates_and_errors() {
     let mut s = Server::start();
-    s.call(2, "create_card", json!({"title":"task"}));
+    s.call(2, "create_card_in_backlog", json!({"title":"task"}));
 
     // A past date is flagged overdue (test data is well before any plausible run date).
     s.call(3, "update_card", json!({"key":"KB-1","due":"2000-01-01"}));
@@ -1210,7 +1315,7 @@ fn due_dates_and_errors() {
 fn update_card_detects_stale_expected_updated_at() {
     let mut s = Server::start();
     assert!(s
-        .call(2, "create_card", json!({"title":"task"}))
+        .call(2, "create_card_in_backlog", json!({"title":"task"}))
         .contains("KB-1"));
 
     s.send(&json!({
@@ -1275,7 +1380,11 @@ fn board_param_addresses_distinct_boards() {
 fn update_card_can_move_to_another_board() {
     let mut s = Server::start();
 
-    s.call(2, "create_card", json!({"title":"migrate across boards"}));
+    s.call(
+        2,
+        "create_card_in_backlog",
+        json!({"title":"migrate across boards"}),
+    );
     assert!(s
         .call(
             3,
