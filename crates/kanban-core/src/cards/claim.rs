@@ -5,7 +5,7 @@ use crate::agents::validate_agent_token;
 use crate::text::trimmed_optional;
 use crate::CardPatch;
 
-use super::CardUpdateState;
+use super::update::CardUpdateState;
 
 const MS_PER_MINUTE: i64 = 60_000;
 const DEFAULT_LEASE_MINUTES: i64 = 60;

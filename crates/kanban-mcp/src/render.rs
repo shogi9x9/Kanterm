@@ -72,6 +72,53 @@ pub(crate) fn priority(card: &Card) -> &'static str {
     priority_badge(card.priority)
 }
 
+/// Render a card's agent_weight/human_intervention as a trailing " [..]" tag for
+/// the board overview, or "" if neither is set.
+pub(crate) fn board_execution_suffix(c: &Card) -> String {
+    let mut parts = Vec::new();
+    if let Some(weight) = c.agent_weight {
+        parts.push(format!("w:{weight}"));
+    }
+    if let Some(human) = c.human_intervention.as_deref() {
+        if human != "none" {
+            parts.push(format!("human:{human}"));
+        }
+    }
+    if parts.is_empty() {
+        String::new()
+    } else {
+        format!(" [{}]", parts.join(" "))
+    }
+}
+
+/// Render a card's full execution metadata as a trailing " [..]" tag for the
+/// card list, or "" if none is set.
+pub(crate) fn execution_suffix(c: &Card) -> String {
+    let mut parts = Vec::new();
+    if let Some(weight) = c.agent_weight {
+        parts.push(format!("w:{weight}"));
+    }
+    if let Some(effort) = c.agent_effort.as_deref() {
+        parts.push(format!("effort:{effort}"));
+    }
+    if let Some(model) = c.suggested_model.as_deref() {
+        parts.push(format!("model:{model}"));
+    }
+    if let Some(tokens) = c.expected_tokens {
+        parts.push(format!("tokens:{tokens}"));
+    }
+    if let Some(human) = c.human_intervention.as_deref() {
+        if human != "none" {
+            parts.push(format!("human:{human}"));
+        }
+    }
+    if parts.is_empty() {
+        String::new()
+    } else {
+        format!(" [{}]", parts.join(" "))
+    }
+}
+
 pub(crate) fn activity_lines(logs: &[ActivityLog]) -> String {
     if logs.is_empty() {
         return "-".to_string();
@@ -139,6 +186,12 @@ pub(crate) fn execution_note_lines(logs: &[ActivityLog]) -> String {
 
 pub(crate) fn metadata_value(value: Option<&str>) -> &str {
     value.filter(|s| !s.trim().is_empty()).unwrap_or("-")
+}
+
+pub(crate) fn metadata_i64(value: Option<i64>) -> String {
+    value
+        .map(|v| v.to_string())
+        .unwrap_or_else(|| "-".to_string())
 }
 
 pub(crate) fn memory_lines(memories: &[Memory]) -> String {

@@ -226,7 +226,7 @@ fn readiness_for_card(card: &Card, upstream: Vec<Card>) -> CardReadiness {
             archived_at: c.archived_at,
         })
         .collect::<Vec<_>>();
-    let closed = card.agent_state == "done" || card.archived_at.is_some();
+    let closed = card.is_closed();
     CardReadiness {
         card_key: card.key.clone(),
         ready: !closed && blocked_by.is_empty(),
@@ -241,10 +241,7 @@ fn stage_plan_from_cards(
     cards: &[Card],
     dependencies: &[CardDependency],
 ) -> Result<DependencyStagePlan> {
-    let active = cards
-        .iter()
-        .filter(|c| c.agent_state != "done" && c.archived_at.is_none())
-        .collect::<Vec<_>>();
+    let active = cards.iter().filter(|c| !c.is_closed()).collect::<Vec<_>>();
     let active_keys = active.iter().map(|c| c.key.clone()).collect::<HashSet<_>>();
     let mut deps_by_downstream: HashMap<String, Vec<String>> = HashMap::new();
     for dep in dependencies {
