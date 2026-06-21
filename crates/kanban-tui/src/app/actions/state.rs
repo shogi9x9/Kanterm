@@ -1,8 +1,8 @@
 use anyhow::Result;
 
-use crate::app::{claim_is_active, App, UI_FOCUS, UI_SELECTED};
+use crate::app::{App, UI_FOCUS, UI_SELECTED};
 use crate::mode::Mode;
-use kanban_core::{Card, CardReadiness};
+use kanban_core::{classify_work, now_ms, Card, CardReadiness, HumanIntervention, WorkState};
 
 impl App {
     pub(crate) fn reload(&mut self) -> Result<()> {
@@ -114,12 +114,13 @@ impl App {
 
     pub(crate) fn jump_to_next_work(&mut self) {
         let mut candidates = Vec::new();
+        let now = now_ms();
         for col in 0..self.columns.len() {
             for (pos, card) in self.column_cards(col).iter().enumerate() {
                 let Ok(readiness) = self.store.card_readiness(&self.board.id, &card.key) else {
                     continue;
                 };
-                if let Some(kind) = next_work_kind(card, &readiness) {
+                if let Some(kind) = next_work_kind(card, &readiness, now) {
                     candidates.push((kind.rank(), col, pos, card.key.clone(), kind.label()));
                 }
             }
@@ -173,10 +174,9 @@ impl App {
 }
 
 fn human_intervention_kind(value: Option<&str>) -> Option<&str> {
-    match value {
-        Some("review" | "decision" | "execution") => value,
-        _ => None,
-    }
+    value
+        .and_then(|v| HumanIntervention::parse(v).ok().flatten())
+        .map(HumanIntervention::as_str)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -219,29 +219,18 @@ impl NextWorkKind {
     }
 }
 
-fn next_work_kind(card: &Card, readiness: &CardReadiness) -> Option<NextWorkKind> {
-    if card.archived_at.is_some() || card.agent_state == "done" {
-        return None;
+fn next_work_kind(card: &Card, readiness: &CardReadiness, now: i64) -> Option<NextWorkKind> {
+    match classify_work(card, readiness, now) {
+        WorkState::Closed => None,
+        WorkState::Blocked => Some(NextWorkKind::Blocked),
+        WorkState::Claimed => Some(NextWorkKind::Claimed),
+        WorkState::DependencyBlocked => Some(NextWorkKind::DependencyBlocked),
+        WorkState::Human(HumanIntervention::Review) => Some(NextWorkKind::Review),
+        WorkState::Human(HumanIntervention::Decision) => Some(NextWorkKind::Decision),
+        WorkState::Human(HumanIntervention::Execution) => Some(NextWorkKind::HumanExecution),
+        WorkState::MissingContext => Some(NextWorkKind::MissingContext),
+        WorkState::Executable => Some(NextWorkKind::Executable),
     }
-    if card.blocked_reason.is_some() {
-        return Some(NextWorkKind::Blocked);
-    }
-    if claim_is_active(card) {
-        return Some(NextWorkKind::Claimed);
-    }
-    if !readiness.ready {
-        return Some(NextWorkKind::DependencyBlocked);
-    }
-    match card.human_intervention.as_deref().unwrap_or("none") {
-        "review" => return Some(NextWorkKind::Review),
-        "decision" => return Some(NextWorkKind::Decision),
-        "execution" => return Some(NextWorkKind::HumanExecution),
-        _ => {}
-    }
-    if card.next_action.is_none() || card.acceptance_criteria.is_none() {
-        return Some(NextWorkKind::MissingContext);
-    }
-    Some(NextWorkKind::Executable)
 }
 
 #[cfg(test)]
@@ -292,27 +281,28 @@ mod tests {
 
     #[test]
     fn next_work_classification_prioritizes_actionable_states() {
+        let now = now_ms();
         assert_eq!(
-            next_work_kind(&card(), &readiness(true)),
+            next_work_kind(&card(), &readiness(true), now),
             Some(NextWorkKind::Executable)
         );
 
         let mut review = card();
         review.human_intervention = Some("review".into());
         assert_eq!(
-            next_work_kind(&review, &readiness(true)),
+            next_work_kind(&review, &readiness(true), now),
             Some(NextWorkKind::Review)
         );
 
         let mut missing = card();
         missing.next_action = None;
         assert_eq!(
-            next_work_kind(&missing, &readiness(true)),
+            next_work_kind(&missing, &readiness(true), now),
             Some(NextWorkKind::MissingContext)
         );
 
         assert_eq!(
-            next_work_kind(&card(), &readiness(false)),
+            next_work_kind(&card(), &readiness(false), now),
             Some(NextWorkKind::DependencyBlocked)
         );
     }

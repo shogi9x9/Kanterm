@@ -1,6 +1,6 @@
 use super::App;
 use crate::theme::{hex_to_color, priority_span, theme};
-use kanban_core::{card_is_stale, format_date, today_start_ms};
+use kanban_core::{card_is_stale, format_date, today_start_ms, HumanIntervention};
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
@@ -123,10 +123,9 @@ impl App {
 }
 
 fn human_gate(value: Option<&str>) -> Option<&str> {
-    match value {
-        Some("review" | "decision" | "execution") => value,
-        _ => None,
-    }
+    value
+        .and_then(|v| HumanIntervention::parse(v).ok().flatten())
+        .map(HumanIntervention::as_str)
 }
 
 #[cfg(test)]

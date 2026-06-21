@@ -1,4 +1,4 @@
-use kanban_core::{Card, CardReadiness};
+use kanban_core::{classify_work, Card, CardReadiness, HumanIntervention, WorkState};
 use rmcp::ErrorData;
 
 use crate::error::bad_param;
@@ -62,31 +62,17 @@ pub(super) enum QueueStatus {
 }
 
 pub(super) fn classify_queue(card: &Card, now: i64, readiness: &CardReadiness) -> QueueStatus {
-    if card.archived_at.is_some() || card.agent_state == "done" {
-        return QueueStatus::Closed;
+    match classify_work(card, readiness, now) {
+        WorkState::Closed => QueueStatus::Closed,
+        WorkState::Blocked => QueueStatus::Blocked,
+        WorkState::Claimed => QueueStatus::Claimed,
+        WorkState::DependencyBlocked => QueueStatus::DependencyBlocked,
+        WorkState::Human(HumanIntervention::Review) => QueueStatus::ReviewRequired,
+        WorkState::Human(HumanIntervention::Decision) => QueueStatus::HumanDecision,
+        WorkState::Human(HumanIntervention::Execution) => QueueStatus::HumanExecution,
+        WorkState::MissingContext => QueueStatus::MissingContext,
+        WorkState::Executable => QueueStatus::Executable,
     }
-    if card.blocked_reason.is_some() {
-        return QueueStatus::Blocked;
-    }
-    if card
-        .lease_expires_at
-        .is_some_and(|expires_at| card.claimed_by.is_some() && expires_at > now)
-    {
-        return QueueStatus::Claimed;
-    }
-    if !readiness.ready {
-        return QueueStatus::DependencyBlocked;
-    }
-    match card.human_intervention.as_deref().unwrap_or("none") {
-        "review" => return QueueStatus::ReviewRequired,
-        "decision" => return QueueStatus::HumanDecision,
-        "execution" => return QueueStatus::HumanExecution,
-        _ => {}
-    }
-    if card.acceptance_criteria.is_none() || card.next_action.is_none() {
-        return QueueStatus::MissingContext;
-    }
-    QueueStatus::Executable
 }
 
 pub(super) fn dependency_suffix(status: QueueStatus, readiness: &CardReadiness) -> String {
