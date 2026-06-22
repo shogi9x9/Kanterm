@@ -5,8 +5,10 @@ use std::collections::HashMap;
 
 mod actions;
 pub(crate) mod render;
+mod render_agent_metadata;
 mod render_board;
 mod render_board_dialogs;
+mod render_card_move_dialogs;
 mod render_dependency_graph;
 mod render_detail;
 mod render_dialogs;
