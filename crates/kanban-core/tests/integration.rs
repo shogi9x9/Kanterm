@@ -4,9 +4,9 @@
 
 mod common;
 
-#[path = "integration/agent_workflow.rs"]
+#[path = "integration/agent_workflow/mod.rs"]
 mod agent_workflow;
-#[path = "integration/boards_cards.rs"]
+#[path = "integration/boards_cards/mod.rs"]
 mod boards_cards;
 #[path = "integration/dependencies.rs"]
 mod dependencies;
