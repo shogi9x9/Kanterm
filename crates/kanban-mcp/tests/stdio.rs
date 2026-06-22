@@ -5,7 +5,7 @@
 
 #[path = "stdio/board_admin.rs"]
 mod board_admin;
-#[path = "stdio/card_updates.rs"]
+#[path = "stdio/card_updates/mod.rs"]
 mod card_updates;
 #[path = "stdio/create.rs"]
 mod create;
