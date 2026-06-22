@@ -1,5 +1,11 @@
-mod board;
-mod cards;
-mod input;
+mod board_admin;
+mod board_state;
+mod card_edit;
+mod card_ops;
+mod card_transfer;
+mod columns;
+mod key_input;
+mod labels;
 mod memory;
+mod runtime;
 mod state;
