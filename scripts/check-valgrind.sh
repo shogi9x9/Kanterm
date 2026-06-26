@@ -48,5 +48,6 @@ while IFS= read -r test_binary; do
     --show-leak-kinds=definite,possible \
     --errors-for-leak-kinds=definite,possible \
     --error-exitcode=99 \
+    --suppressions=scripts/valgrind-rust-test.supp \
     "$test_binary"
 done < "$tmpdir/test-binaries.txt"
