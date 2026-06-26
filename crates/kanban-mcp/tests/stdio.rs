@@ -1,7 +1,7 @@
 //! End-to-end test of the MCP server: spawn the real binary, speak
 //! line-delimited JSON-RPC over stdio, and assert on tool behaviour.
 //!
-//! Cargo provides the built binary path via `CARGO_BIN_EXE_kanban-mcp`.
+//! Cargo provides the built binary path via `CARGO_BIN_EXE_kanterm-mcp`.
 
 #[path = "stdio/board_admin.rs"]
 mod board_admin;
@@ -11,6 +11,8 @@ mod card_updates;
 mod create;
 #[path = "stdio/dependencies.rs"]
 mod dependencies;
+#[path = "stdio/handoffs/mod.rs"]
+mod handoffs;
 #[path = "stdio/memories.rs"]
 mod memories;
 #[path = "stdio/support.rs"]

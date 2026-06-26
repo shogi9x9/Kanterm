@@ -23,8 +23,8 @@ cards. Both can run at the same time and see each other's writes live.
 - **Local-only, single binary** — native Rust, no server and no account; your
   data lives in a local SQLite file and opens instantly in any terminal.
 - **Agent-native** — `kanban-mcp` exposes cards, columns, boards, and a memory
-  log to agents, with claim leases and verification fields for resumable,
-  auditable work.
+  log to agents, with claim leases, durable handoffs, and verification fields
+  for resumable, auditable work.
 - **Execution-oriented cards** — handoff notes, dependencies (DAGs), execution
   metadata, and per-board agent instructions turn a plan into claimable,
   verifiable work.
@@ -37,11 +37,11 @@ cards. Both can run at the same time and see each other's writes live.
 
 ```sh
 cargo build --release
-./target/release/kanban-tui          # open the TUI
+./target/release/kanterm          # open the TUI
 ```
 
 The repo ships a project-scoped [`.mcp.json`](.mcp.json), so Claude Code picks up
-the `kanban` MCP server automatically when run from this directory. See
+the `kanterm` MCP server automatically when run from this directory. See
 [docs/mcp.md](docs/mcp.md) to drive it from any MCP client.
 
 ## How it works
@@ -49,8 +49,8 @@ the `kanban` MCP server automatically when run from this directory. See
 ```
 crates/
 ├─ kanban-core   domain + SQLite (WAL). The ONLY code that touches the DB.
-├─ kanban-tui    ratatui board, synchronous terminal UI.
-└─ kanban-mcp    rmcp stdio MCP server, async, for agents.
+├─ kanban-tui    ratatui board, synchronous terminal UI. Binary: kanterm.
+└─ kanban-mcp    rmcp stdio MCP server, async, for agents. Binary: kanterm-mcp.
 ```
 
 Data lives at `~/.local/share/kanban/kanban.db` (override with `KANBAN_DB`).
@@ -62,7 +62,7 @@ decision.
 ### TUI
 
 ```sh
-./target/release/kanban-tui
+./target/release/kanterm
 ```
 
 `h`/`l` move between columns, `j`/`k` within a column, `H`/`L` move a card across
@@ -75,12 +75,20 @@ backup/restore are documented in **[docs/tui.md](docs/tui.md)**.
 
 ### MCP (for agents)
 
-`kanban-mcp` exposes the board to AI agents over stdio. Cards are addressed by
+`kanterm-mcp` exposes the board to AI agents over stdio. Cards are addressed by
 key (e.g. `KB-12`); tools cover reading (`get_board`, `list_cards`, `get_card`),
 writing (`create_card`, `create_cards`, `update_card`), structure
 (`manage_columns`, `manage_boards`), agent coordination (`register_agent`,
-claims, `dependency_graph`), and a memory log (`record_memory`,
-`recall_memories`).
+claims, `dependency_graph`, durable handoffs), and a memory log
+(`record_memory`, `recall_memories`).
+`kanterm-mcp watch-handoffs` can run as a lightweight watcher/bridge for
+delivering durable handoffs into another local runtime, and
+`kanterm-mcp run-workflow` can turn a small workflow YAML step completion into a
+cross-repo handoff. Reusable target configs let workflows route to command
+targets now, with interactive session targets reserved for terminal adapters.
+`kanterm-mcp run-agent-task` closes the headless loop by claiming an incoming
+handoff, running the receiving command target, completing a Kanterm card, and
+triggering the next workflow step.
 
 The full tool reference, the agent execution flow, execution metadata, queue
 filters, and import examples are in **[docs/mcp.md](docs/mcp.md)**.

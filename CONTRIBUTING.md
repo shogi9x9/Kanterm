@@ -19,6 +19,16 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets
 ```
 
+Run the Linux-only Valgrind leak check when changing storage, migrations, or
+other low-level domain behavior:
+
+```sh
+scripts/check-valgrind.sh
+```
+
+The script requires `valgrind` and runs the compiled `kanban-core` test
+binaries with definite/possible leaks treated as failures.
+
 Build release binaries only when needed:
 
 ```sh

@@ -9,7 +9,7 @@ readme.workspace = true
 repository.workspace = true
 
 [[bin]]
-name = "kanban-tui"
+name = "kanterm"
 path = "src/main.rs"
 
 [dependencies]

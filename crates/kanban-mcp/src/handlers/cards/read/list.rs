@@ -1,12 +1,16 @@
-use kanban_core::{card_is_stale, now_ms, priority_label, Card, Store};
+mod filters;
+mod format;
+
+use kanban_core::Store;
 use rmcp::ErrorData;
 
 use crate::error::internal;
 use crate::lookup::{columns_by_id, resolve_board};
 use crate::params::ListParams;
-use crate::render::{claim_suffix, due_suffix, execution_suffix, label_suffix, priority};
 
-use super::super::queue::{classify_queue, dependency_suffix, queue_suffix, QueueMode};
+use self::filters::{filter_context, list_entry};
+use self::format::format_entry;
+use super::super::queue::QueueMode;
 
 pub(crate) fn list_cards(
     store: &Store,
@@ -23,100 +27,15 @@ pub(crate) fn list_cards(
     };
     let labels = store.labels_by_card(&board_id).map_err(internal)?;
     let queue = p.queue.as_deref().map(QueueMode::parse).transpose()?;
-    let now = now_ms();
     let ranked = p.ranked.unwrap_or(false);
+    let context = filter_context(&p, &names, queue);
     let mut entries = Vec::new();
     for c in &cards {
-        let col_name = names.get(&c.column_id).cloned().unwrap_or_default();
-        if let Some(col) = &p.column {
-            if &col_name != col {
-                continue;
-            }
-        }
-        let agent_state_filter = p.agent_state.as_ref().or(p.status.as_ref());
-        if let Some(st) = agent_state_filter {
-            if &c.agent_state != st {
-                continue;
-            }
-        }
-        if let Some(stale) = p.stale {
-            if card_is_stale(c) != stale {
-                continue;
-            }
-        }
-        if let Some(max) = p.agent_weight_max {
-            if c.agent_weight.is_none_or(|weight| weight > max) {
-                continue;
-            }
-        }
-        if let Some(agent_effort) = p.agent_effort.as_deref() {
-            if c.agent_effort.as_deref() != Some(agent_effort) {
-                continue;
-            }
-        }
-        if let Some(suggested_model) = p.suggested_model.as_deref() {
-            if c.suggested_model.as_deref() != Some(suggested_model) {
-                continue;
-            }
-        }
-        if let Some(min) = p.expected_tokens_min {
-            if c.expected_tokens.is_none_or(|tokens| tokens < min) {
-                continue;
-            }
-        }
-        if let Some(max) = p.expected_tokens_max {
-            if c.expected_tokens.is_none_or(|tokens| tokens > max) {
-                continue;
-            }
-        }
-        if let Some(human_intervention) = p.human_intervention.as_deref() {
-            let current = c.human_intervention.as_deref().unwrap_or("none");
-            if current != human_intervention {
-                continue;
-            }
-        }
         let readiness = store.card_readiness(&board_id, &c.key).map_err(internal)?;
-        let queue_status = classify_queue(c, now, &readiness);
-        if let Some(queue) = queue {
-            if !queue.matches(queue_status) {
-                continue;
-            }
-        }
-        let stale = if card_is_stale(c) { " [stale]" } else { "" };
-        let workflow = if c.blocked_reason.is_some() {
-            " [blocked]"
-        } else if c.next_action.is_some() {
-            " [next]"
-        } else {
-            ""
+        let Some(entry) = list_entry(c, &readiness, &context) else {
+            continue;
         };
-        let claim = claim_suffix(c);
-        let rank = rank_key(c);
-        let rank_reason = if ranked {
-            rank_reason(c)
-        } else {
-            String::new()
-        };
-        entries.push((
-            rank,
-            c.key.clone(),
-            format!(
-                "{}  [{}] ({}) {}{}{}{}{}{}{}{}{}{}",
-                c.key,
-                col_name,
-                priority(c),
-                c.title,
-                due_suffix(c),
-                label_suffix(&labels, &c.id),
-                workflow,
-                claim,
-                stale,
-                execution_suffix(c),
-                dependency_suffix(queue_status, &readiness),
-                queue_suffix(queue, queue_status),
-                rank_reason,
-            ),
-        ));
+        entries.push(format_entry(c, &readiness, &labels, entry, ranked));
     }
     if ranked {
         entries.sort_by_key(|(rank, key, _)| (*rank, key.clone()));
@@ -130,32 +49,6 @@ pub(crate) fn list_cards(
     } else {
         Ok(lines.join("\n"))
     }
-}
-
-fn rank_key(card: &Card) -> (i64, i64, i64, i64) {
-    (
-        -card.priority,
-        card.agent_weight.unwrap_or(3),
-        card.expected_tokens.unwrap_or(i64::MAX),
-        card.updated_at,
-    )
-}
-
-fn rank_reason(card: &Card) -> String {
-    let weight = card
-        .agent_weight
-        .map(|v| v.to_string())
-        .unwrap_or_else(|| "-".into());
-    let tokens = card
-        .expected_tokens
-        .map(|v| v.to_string())
-        .unwrap_or_else(|| "-".into());
-    format!(
-        " [rank:priority={} weight={} tokens={}]",
-        priority_label(card.priority),
-        weight,
-        tokens
-    )
 }
 
 #[cfg(test)]

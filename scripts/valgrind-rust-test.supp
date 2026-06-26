@@ -1,0 +1,11 @@
+{
+   rust-libtest-mpmc-context-thread-local
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   ...
+   fun:*init_current*
+   ...
+   fun:*run_tests_console*
+   ...
+}

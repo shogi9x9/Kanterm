@@ -28,6 +28,16 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets
 ```
 
+ストレージ、マイグレーション、低レイヤーのドメイン挙動を変更した場合は、
+Linux 環境で Valgrind によるリークチェックも実行してください。
+
+```sh
+scripts/check-valgrind.sh
+```
+
+このスクリプトは `valgrind` を必要とし、コンパイル済みの `kanban-core`
+テストバイナリを実行して definite / possible leak を失敗扱いにします。
+
 リリース用バイナリは必要な時のみ作成します。
 
 ```sh

@@ -1,7 +1,7 @@
 {
   "mcpServers": {
-    "kanban": {
-      "command": "./target/release/kanban-mcp",
+    "kanterm": {
+      "command": "./target/release/kanterm-mcp",
       "args": [],
       "env": {}
     }

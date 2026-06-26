@@ -2,6 +2,7 @@ mod agents;
 mod boards;
 mod cards;
 mod columns;
+mod handoffs;
 mod memories;
 
 pub(crate) use agents::register_agent;
@@ -11,6 +12,7 @@ pub(crate) use cards::{
 };
 pub(crate) use cards::{create_card_in_backlog, create_cards};
 pub(crate) use columns::manage_columns;
+pub(crate) use handoffs::{claim_handoff, complete_handoff, list_handoffs, send_handoff};
 pub(crate) use memories::{recall_memories, record_memory};
 
 pub(crate) fn status(store: &kanban_core::Store, default_board_id: &str, db_path: &str) -> String {

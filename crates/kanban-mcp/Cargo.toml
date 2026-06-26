@@ -9,7 +9,7 @@ readme.workspace = true
 repository.workspace = true
 
 [[bin]]
-name = "kanban-mcp"
+name = "kanterm-mcp"
 path = "src/main.rs"
 
 [dependencies]

@@ -3,6 +3,7 @@ mod mutate;
 mod plan_import;
 mod queue;
 mod read;
+mod workflow_trigger;
 
 pub(crate) use graph::dependency_graph;
 pub(crate) use mutate::{create_card, create_card_in_backlog, create_cards, update_card};

@@ -123,6 +123,42 @@ pub struct AgentRegistrationResult {
     pub claim_token: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentHandoff {
+    pub id: String,
+    pub from_agent: String,
+    pub to_agent: String,
+    pub board_id: Option<String>,
+    pub card_key: Option<String>,
+    pub subject: String,
+    pub body: String,
+    pub status: String,
+    pub claimed_by: Option<String>,
+    pub claimed_at: Option<i64>,
+    pub lease_expires_at: Option<i64>,
+    pub completed_at: Option<i64>,
+    pub failed_at: Option<i64>,
+    pub last_error: Option<String>,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HandoffDraft {
+    pub from_agent: String,
+    pub to_agent: String,
+    pub board_id: Option<String>,
+    pub card_key: Option<String>,
+    pub subject: String,
+    pub body: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HandoffStatusPatch {
+    pub status: String,
+    pub note: Option<String>,
+}
+
 /// A remembered decision/learning/context note, addressed by a global key
 /// like `M-12`. Linked to cards only loosely (by key text) so it survives
 /// board archive/delete - memories are the long-lived layer.

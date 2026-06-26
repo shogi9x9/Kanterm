@@ -4,9 +4,9 @@ mod priority;
 mod work;
 
 pub use entities::{
-    ActivityLog, AgentRegistration, AgentRegistrationResult, Board, Card, CardDependency,
-    CardReadiness, Column, DependencyBlockedCard, DependencyBlocker, DependencyStagePlan, Label,
-    Memory,
+    ActivityLog, AgentHandoff, AgentRegistration, AgentRegistrationResult, Board, Card,
+    CardDependency, CardReadiness, Column, DependencyBlockedCard, DependencyBlocker,
+    DependencyStagePlan, HandoffDraft, HandoffStatusPatch, Label, Memory,
 };
 pub use patches::{CardCreateDraft, CardPatch, MemoryPatch};
 pub use priority::{priority_badge, priority_label, PRIORITY_HIGH, PRIORITY_LOW, PRIORITY_NORMAL};

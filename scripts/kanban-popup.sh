@@ -4,10 +4,10 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BIN="$REPO/target/release/kanban-tui"
+BIN="$REPO/target/release/kanterm"
 
 if [[ ! -x "$BIN" ]]; then
-    echo "Building kanban-tui (first run)…" >&2
+    echo "Building kanterm (first run)…" >&2
     (cd "$REPO" && cargo build --release -p kanban-tui)
 fi
 

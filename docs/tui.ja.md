@@ -3,7 +3,7 @@
 English version: [tui.md](tui.md)
 
 ```sh
-./target/release/kanban-tui
+./target/release/kanterm
 ```
 
 ## ボードのキー操作
@@ -85,7 +85,7 @@ Backlog ボードはどちらもできません。
 組み込みの `dark` / `light` テーマがあります:
 
 ```sh
-KANBAN_THEME=light ./target/release/kanban-tui
+KANBAN_THEME=light ./target/release/kanterm
 ```
 
 JSON ファイルと `KANBAN_THEME_FILE` で主要色を上書きできます:
@@ -119,8 +119,8 @@ JSON ファイルと `KANBAN_THEME_FILE` で主要色を上書きできます:
 ## エクスポート
 
 ```sh
-./target/release/kanban-tui --export md     # Markdown（git 向き）
-./target/release/kanban-tui --export json   # 完全な JSON スナップショット
+./target/release/kanterm --export md     # Markdown（git 向き）
+./target/release/kanterm --export json   # 完全な JSON スナップショット
 ```
 
 ## バックアップ / 復元
@@ -129,8 +129,8 @@ JSON ファイルと `KANBAN_THEME_FILE` で主要色を上書きできます:
 やすいスナップショット出力であり、完全な import 用ではありません。
 
 ```sh
-./target/release/kanban-tui --backup-db ./kanban-backup.db
-./target/release/kanban-tui --restore-db ./kanban-backup.db --force
+./target/release/kanterm --backup-db ./kanban-backup.db
+./target/release/kanterm --restore-db ./kanban-backup.db --force
 ```
 
 バックアップは SQLite の `VACUUM INTO` で作成するため、WAL に残っている内容も
@@ -141,5 +141,5 @@ JSON ファイルと `KANBAN_THEME_FILE` で主要色を上書きできます:
 例:
 
 ```sh
-./target/release/kanban-tui --backup-db ~/kanban-backups/kanban-$(date +%Y%m%d-%H%M%S).db
+./target/release/kanterm --backup-db ~/kanban-backups/kanban-$(date +%Y%m%d-%H%M%S).db
 ```

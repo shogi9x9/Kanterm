@@ -1,25 +1,32 @@
-//! kanban-mcp: a stdio MCP server exposing the board to agents.
+//! kanterm-mcp: a stdio MCP server exposing the board to agents.
 //!
 //! It is a thin shell over `kanban_core::Store`. Per the design review it offers
 //! a compact tool surface, addresses cards by their human key (e.g. "KB-12"),
 //! never leaks internal ids, and returns compact text rather than JSON so agents
 //! spend fewer tokens reading results.
 
+mod agent_task;
+mod cli;
 mod error;
 mod handlers;
+mod hooks;
 mod instructions;
 mod lookup;
 mod params;
 mod render;
+mod targets;
+mod watch;
+mod workflow;
 
 use std::sync::Mutex;
 
 use instructions::SERVER_INSTRUCTIONS;
 use kanban_core::Store;
 use params::{
-    BoardParam, CreateBacklogCardParams, CreateCardsParams, CreateParams, DependencyGraphParams,
-    KeyParams, ListParams, ManageBoardsParams, ManageColumnsParams, RecallMemoriesParams,
-    RecordMemoryParams, RegisterAgentParams, UpdateParams,
+    BoardParam, ClaimHandoffParams, CompleteHandoffParams, CreateBacklogCardParams,
+    CreateCardsParams, CreateParams, DependencyGraphParams, KeyParams, ListHandoffsParams,
+    ListParams, ManageBoardsParams, ManageColumnsParams, RecallMemoriesParams, RecordMemoryParams,
+    RegisterAgentParams, SendHandoffParams, UpdateParams,
 };
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
@@ -135,7 +142,8 @@ impl Kanban {
                        suggested_model, expected_tokens, human_intervention, and depends_on. \
                        Use claim / claim_token / release_claim / lease_minutes for agent ownership, \
                        and complete_note to archive the card, mark agent_state=done, clear active handoff \
-                       fields, and release any claim."
+                       fields, and release any claim. With complete_note, optional workflow / workflow_targets / \
+                       workflow_step / workflow_from_agent fields trigger a workflow handoff after completion."
     )]
     fn update_card(&self, Parameters(p): Parameters<UpdateParams>) -> Result<String, ErrorData> {
         let mut store = self.store();
@@ -155,6 +163,55 @@ impl Kanban {
     ) -> Result<String, ErrorData> {
         let mut store = self.store();
         handlers::register_agent(&mut store, p)
+    }
+
+    #[tool(
+        description = "Send a durable agent-to-agent handoff. The message is stored in the Kanterm DB, \
+                       can be addressed to an exact registered identity like `claude#abc123` or to a \
+                       family name like `claude`, and may reference a board/card for context."
+    )]
+    fn send_handoff(
+        &self,
+        Parameters(p): Parameters<SendHandoffParams>,
+    ) -> Result<String, ErrorData> {
+        let mut store = self.store();
+        handlers::send_handoff(&mut store, &self.board_id, p)
+    }
+
+    #[tool(
+        description = "List durable handoffs. Pass for_agent as an assigned identity or family name \
+                       to read that inbox; omitted returns all open handoffs for watcher/debug use."
+    )]
+    fn list_handoffs(
+        &self,
+        Parameters(p): Parameters<ListHandoffsParams>,
+    ) -> Result<String, ErrorData> {
+        let store = self.store();
+        handlers::list_handoffs(&store, p)
+    }
+
+    #[tool(
+        description = "Claim one handoff for a registered agent using its claim_token. \
+                       Claiming sets a lease so another watcher can recover expired work."
+    )]
+    fn claim_handoff(
+        &self,
+        Parameters(p): Parameters<ClaimHandoffParams>,
+    ) -> Result<String, ErrorData> {
+        let mut store = self.store();
+        handlers::claim_handoff(&mut store, p)
+    }
+
+    #[tool(
+        description = "Mark a claimed handoff as completed or failed. The claimant and claim_token \
+                       must match the active claim."
+    )]
+    fn complete_handoff(
+        &self,
+        Parameters(p): Parameters<CompleteHandoffParams>,
+    ) -> Result<String, ErrorData> {
+        let mut store = self.store();
+        handlers::complete_handoff(&mut store, p)
     }
 
     #[tool(
@@ -231,7 +288,7 @@ impl ServerHandler for Kanban {
         // than construct via literals.
         let mut info = ServerInfo::default();
         info.capabilities = ServerCapabilities::builder().enable_tools().build();
-        info.server_info.name = "kanban-mcp".into();
+        info.server_info.name = "kanterm-mcp".into();
         info.server_info.version = env!("CARGO_PKG_VERSION").into();
         info.instructions = Some(SERVER_INSTRUCTIONS.into());
         info
@@ -240,6 +297,10 @@ impl ServerHandler for Kanban {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let args: Vec<String> = std::env::args().collect();
+    if cli::run_if_cli_command(&args)? {
+        return Ok(());
+    }
     let path = match std::env::var_os("KANBAN_DB") {
         Some(p) => std::path::PathBuf::from(p),
         None => Store::default_db_path()?,
