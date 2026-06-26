@@ -12,7 +12,7 @@ Set Padding 20
 Set Theme "Dracula"
 
 Hide
-Type "KANBAN_DB=/tmp/kanban-demo.db KANBAN_THEME=dark ./target/release/kanban-tui"
+Type "KANBAN_DB=/tmp/kanban-demo.db KANBAN_THEME=dark ./target/release/kanterm"
 Enter
 Sleep 800ms
 Show

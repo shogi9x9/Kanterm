@@ -166,3 +166,74 @@ fn dates() {
         .due_date
         .is_none());
 }
+
+#[test]
+fn agent_handoff_can_be_claimed_by_recipient_family() {
+    let mut store = Store::open_in_memory().unwrap();
+    let agent = store.register_agent("claude", None, None, None).unwrap();
+    let handoff = store
+        .create_handoff(&HandoffDraft {
+            from_agent: "codex#sender".into(),
+            to_agent: "claude".into(),
+            board_id: None,
+            card_key: None,
+            subject: "continue work".into(),
+            body: "pick up the next card".into(),
+        })
+        .unwrap();
+
+    let claimed = store
+        .claim_handoff(
+            &handoff.id,
+            &agent.registration.assigned_identity,
+            Some(&agent.claim_token),
+            Some(5),
+        )
+        .unwrap();
+
+    assert_eq!(claimed.status, "claimed");
+    assert_eq!(
+        claimed.claimed_by.as_deref(),
+        Some(agent.registration.assigned_identity.as_str())
+    );
+
+    let completed = store
+        .update_handoff_status(
+            &handoff.id,
+            &agent.registration.assigned_identity,
+            Some(&agent.claim_token),
+            &HandoffStatusPatch {
+                status: "completed".into(),
+                note: None,
+            },
+        )
+        .unwrap();
+    assert_eq!(completed.status, "completed");
+    assert!(completed.completed_at.is_some());
+}
+
+#[test]
+fn agent_handoff_rejects_wrong_recipient() {
+    let mut store = Store::open_in_memory().unwrap();
+    let agent = store.register_agent("codex", None, None, None).unwrap();
+    let handoff = store
+        .create_handoff(&HandoffDraft {
+            from_agent: "sender".into(),
+            to_agent: "claude".into(),
+            board_id: None,
+            card_key: None,
+            subject: "wrong inbox".into(),
+            body: "nope".into(),
+        })
+        .unwrap();
+
+    let err = store
+        .claim_handoff(
+            &handoff.id,
+            &agent.registration.assigned_identity,
+            Some(&agent.claim_token),
+            None,
+        )
+        .unwrap_err();
+    assert!(err.to_string().contains("is addressed to 'claude'"));
+}

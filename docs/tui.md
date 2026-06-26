@@ -3,7 +3,7 @@
 日本語版: [tui.ja.md](tui.ja.md)
 
 ```sh
-./target/release/kanban-tui
+./target/release/kanterm
 ```
 
 ## Board keys
@@ -85,7 +85,7 @@ first, and the Backlog board can do neither.
 The TUI ships with built-in `dark` and `light` themes:
 
 ```sh
-KANBAN_THEME=light ./target/release/kanban-tui
+KANBAN_THEME=light ./target/release/kanterm
 ```
 
 Override key colors with a JSON file and `KANBAN_THEME_FILE`:
@@ -119,8 +119,8 @@ agent recalls are purged.
 ## Export
 
 ```sh
-./target/release/kanban-tui --export md     # Markdown (good for git)
-./target/release/kanban-tui --export json   # full JSON snapshot
+./target/release/kanterm --export md     # Markdown (good for git)
+./target/release/kanterm --export json   # full JSON snapshot
 ```
 
 ## Backup / restore
@@ -129,8 +129,8 @@ Use SQLite-level backups for restoration. `--export` is for reviewable snapshots
 not lossless import.
 
 ```sh
-./target/release/kanban-tui --backup-db ./kanban-backup.db
-./target/release/kanban-tui --restore-db ./kanban-backup.db --force
+./target/release/kanterm --backup-db ./kanban-backup.db
+./target/release/kanterm --restore-db ./kanban-backup.db --force
 ```
 
 Backups are written with SQLite `VACUUM INTO`, so pending WAL contents are
@@ -141,5 +141,5 @@ Before testing a new local release binary against your real board, take a
 timestamped backup outside the repo, for example:
 
 ```sh
-./target/release/kanban-tui --backup-db ~/kanban-backups/kanban-$(date +%Y%m%d-%H%M%S).db
+./target/release/kanterm --backup-db ~/kanban-backups/kanban-$(date +%Y%m%d-%H%M%S).db
 ```

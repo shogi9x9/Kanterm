@@ -1,4 +1,4 @@
-//! kanban-tui: a ratatui board for a local terminal.
+//! kanterm: a ratatui board for a local terminal.
 //!
 //! Synchronous by design (no tokio): rusqlite is fast and local, and the usage
 //! model is "open, do one thing, close". All persistence goes through
@@ -22,7 +22,7 @@ fn main() -> Result<()> {
         None => Store::default_db_path()?,
     };
 
-    // Headless export mode: `kanban-tui --export json|md`. No TUI.
+    // Headless export mode: `kanterm --export json|md`. No TUI.
     let args: Vec<String> = std::env::args().collect();
     if let Some(pos) = args.iter().position(|a| a == "--backup-db") {
         let destination = args

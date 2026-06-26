@@ -14,7 +14,7 @@ English version: [RELEASE.md](RELEASE.md)
   backup を取る。
 
 ```sh
-./target/release/kanban-tui --backup-db ~/kanban-backups/kanban-$(date +%Y%m%d-%H%M%S).db
+./target/release/kanterm --backup-db ~/kanban-backups/kanban-$(date +%Y%m%d-%H%M%S).db
 ```
 
 - 以下を実行する。

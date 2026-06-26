@@ -1,5 +1,6 @@
 /target
 .serena/
+.codex/
 *.db
 *.db-wal
 *.db-shm

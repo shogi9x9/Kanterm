@@ -23,6 +23,7 @@ Requests are not accepted. Please open an Issue instead. See CONTRIBUTING.md.
 
 - [ ] `cargo test`
 - [ ] `cargo clippy --all-targets`
+- [ ] `scripts/check-valgrind.sh` when storage, migration, or low-level domain behavior changed
 - [ ] Manual verification
 
 ## Checklist

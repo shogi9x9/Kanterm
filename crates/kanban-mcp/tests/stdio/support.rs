@@ -36,7 +36,7 @@ impl Server {
             .unwrap()
             .as_nanos();
         std::env::temp_dir()
-            .join(format!("kanban-mcp-it-{}-{ts}-{n}.db", std::process::id()))
+            .join(format!("kanterm-mcp-it-{}-{ts}-{n}.db", std::process::id()))
             .display()
             .to_string()
     }
@@ -46,13 +46,13 @@ impl Server {
     }
 
     pub(crate) fn start_at(db: String) -> Server {
-        let mut child = Command::new(env!("CARGO_BIN_EXE_kanban-mcp"))
+        let mut child = Command::new(env!("CARGO_BIN_EXE_kanterm-mcp"))
             .env("KANBAN_DB", &db)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
             .spawn()
-            .expect("spawn kanban-mcp");
+            .expect("spawn kanterm-mcp");
         let stdin = child.stdin.take().unwrap();
         let stdout = BufReader::new(child.stdout.take().unwrap());
         let mut s = Server {
@@ -94,7 +94,7 @@ impl Server {
                       "clientInfo":{"name":"it","version":"0"}}
         }));
         let init = self.recv_id(1);
-        assert_eq!(init["result"]["serverInfo"]["name"], "kanban-mcp");
+        assert_eq!(init["result"]["serverInfo"]["name"], "kanterm-mcp");
         self.send(&json!({"jsonrpc":"2.0","method":"notifications/initialized"}));
     }
 

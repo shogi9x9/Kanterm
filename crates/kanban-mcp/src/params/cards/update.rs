@@ -111,4 +111,16 @@ pub(crate) struct UpdateParams {
     /// "[completion note] ..." and archived=true.
     #[serde(default)]
     pub(crate) complete_note: Option<String>,
+    /// Workflow YAML to run after this card is completed with complete_note.
+    #[serde(default)]
+    pub(crate) workflow: Option<String>,
+    /// Optional workflow step name. Defaults to the workflow's initial_step.
+    #[serde(default)]
+    pub(crate) workflow_step: Option<String>,
+    /// Optional target config YAML used by workflow target references.
+    #[serde(default)]
+    pub(crate) workflow_targets: Option<String>,
+    /// Agent identity/name recorded as the workflow handoff sender.
+    #[serde(default)]
+    pub(crate) workflow_from_agent: Option<String>,
 }

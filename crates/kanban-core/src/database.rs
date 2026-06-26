@@ -26,6 +26,7 @@ const MIGRATIONS: &[&str] = &[
     include_str!("migrations/0016_agent_execution_metadata.sql"),
     include_str!("migrations/0017_card_dependencies.sql"),
     include_str!("migrations/0018_board_agent_context.sql"),
+    include_str!("migrations/0019_agent_handoffs.sql"),
 ];
 
 pub struct Store {

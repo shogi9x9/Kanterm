@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Seed a throwaway demo board used to record docs/assets/demo.gif.
 
-Speaks JSON-RPC to the release `kanban-mcp` binary over stdio, then sets the
+Speaks JSON-RPC to the release `kanterm-mcp` binary over stdio, then sets the
 TUI's restored board so the recording opens straight onto the demo board.
 
 Usage:
@@ -16,7 +16,7 @@ import sqlite3
 import subprocess
 import sys
 
-BIN = "./target/release/kanban-mcp"
+BIN = "./target/release/kanterm-mcp"
 DB = "/tmp/kanban-demo.db"
 BOARD_SLUG = "project-phoenix"
 
@@ -47,7 +47,7 @@ def call(method, params=None, notify=False):
     while True:
         line = proc.stdout.readline()
         if not line:
-            raise RuntimeError("kanban-mcp closed unexpectedly")
+            raise RuntimeError("kanterm-mcp closed unexpectedly")
         try:
             resp = json.loads(line)
         except json.JSONDecodeError:

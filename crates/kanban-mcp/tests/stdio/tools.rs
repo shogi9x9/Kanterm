@@ -10,6 +10,8 @@ fn exposes_the_expected_tools() {
     assert_eq!(
         names,
         vec![
+            "claim_handoff",
+            "complete_handoff",
             "create_card",
             "create_card_in_backlog",
             "create_cards",
@@ -17,11 +19,13 @@ fn exposes_the_expected_tools() {
             "get_board",
             "get_card",
             "list_cards",
+            "list_handoffs",
             "manage_boards",
             "manage_columns",
             "recall_memories",
             "record_memory",
             "register_agent",
+            "send_handoff",
             "status",
             "update_card",
         ],
