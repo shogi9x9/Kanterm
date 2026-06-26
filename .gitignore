@@ -1,6 +1,10 @@
 /target
 .serena/
 .codex/
+AGENTS.md
+agents.md
+CLAUDE.md
+claude.md
 *.db
 *.db-wal
 *.db-shm
