@@ -40,15 +40,13 @@ jobs:
 
       - name: Package contents
         run: |
-          cargo package --list -p kanban-core
-          cargo package --list -p kanban-tui
-          cargo package --list -p kanban-mcp
+          cargo package --list -p kanterm-core
+          cargo package --list -p kanterm
+          cargo package --list -p kanterm-mcp
 
       - name: Package check
         run: |
-          cargo package -p kanban-core
-          cargo package -p kanban-tui --no-verify
-          cargo package -p kanban-mcp --no-verify
+          cargo package -p kanterm-core
 
   valgrind:
     name: Valgrind
@@ -68,5 +66,5 @@ jobs:
       - name: Install Valgrind
         run: sudo apt-get update && sudo apt-get install -y valgrind
 
-      - name: Leak check kanban-core tests
+      - name: Leak check kanterm-core tests
         run: scripts/check-valgrind.sh

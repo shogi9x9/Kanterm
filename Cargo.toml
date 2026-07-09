@@ -1,22 +1,22 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/kanban-core",
-    "crates/kanban-tui",
-    "crates/kanban-mcp",
+    "crates/kanterm-core",
+    "crates/kanterm",
+    "crates/kanterm-mcp",
 ]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.90"
-description = "Local kanban board with a terminal UI and MCP server for AI agents"
+description = "Terminal kanban board with an optional MCP interface for automation"
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/shogi9x9/Kanterm"
 
 [workspace.dependencies]
-kanban-core = { path = "crates/kanban-core", version = "0.1.0" }
+kanterm-core = { path = "crates/kanterm-core", version = "0.1.0" }
 anyhow = "1"
 getrandom = "0.3.4"
 serde = { version = "1", features = ["derive"] }

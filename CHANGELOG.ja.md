@@ -6,6 +6,8 @@
 
 ## Unreleased
 
+## 0.1.0 - 2026-07-09
+
 - **破壊的変更 (MCP):** `create_card` と `create_cards` で `board` を必須化。
   既存のプロジェクトボード slug を渡すとそのボードへ、未知の名前を渡すと
   workflow テンプレートのボードを新規作成してカードを追加します。`board` を
@@ -15,9 +17,10 @@
 - `create_card`/`create_cards` のレスポンスに、作成先ボードの slug と、ボードが
   既存か新規作成かを含めるようにしました。
 - ローカル TUI kanban ボードを SQLite で提供
-- AI エージェント向け MCP サーバを追加
+- 自動化クライアント向け MCP サーバを追加
 - 記憶ログの追加（参照履歴と月次クリーンアップ）
-- エージェント向けワークフローフィールドとアドバイザリ的な貸し出しロックを追加
+- workflow handoff field とアドバイザリ的な貸し出しロックを追加
 - テーマ、ボード順序、計画レーンを追加
+- Rust package 名を project 名に合わせて `kanterm-core`、`kanterm`、
+  `kanterm-mcp` に統一
 - MIT ライセンスと公開準備用ドキュメントを追加
-

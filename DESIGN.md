@@ -33,11 +33,11 @@ that opens constantly. Go was viable but not installed; Rust was.
 ## Crate layout
 
 ```
-kanban-core   domain types + SQLite. The single owner of the schema and all
+kanterm-core   domain types + SQLite. The single owner of the schema and all
               write logic. Nothing else opens the database.
-kanban-tui    ratatui frontend. SYNCHRONOUS (no tokio) — rusqlite is fast and
+kanterm    ratatui frontend. SYNCHRONOUS (no tokio) — rusqlite is fast and
               local; async would add complexity for no gain.
-kanban-mcp    rmcp stdio server. ASYNC (tokio, required by rmcp). A thin shell
+kanterm-mcp    rmcp stdio server. ASYNC (tokio, required by rmcp). A thin shell
               that locks a Store behind a Mutex and calls core.
 ```
 
@@ -47,7 +47,7 @@ the MCP surface (the volatile dependency) is isolated to one small crate.
 ## Concurrency model
 
 The TUI (short-lived) and the MCP server (longer-lived) may write at the same
-time. Handled entirely in `kanban-core::Store::configure` / write paths:
+time. Handled entirely in `kanterm-core::Store::configure` / write paths:
 
 - `journal_mode = WAL` — readers never block the single writer.
 - `busy_timeout = 5000ms` — wait, don't immediately fail, on lock contention.
@@ -134,12 +134,12 @@ UI-state restore.
   rendered as chips in the TUI and inline in every MCP read. Exposed through
   `update_card`'s `add_labels` / `remove_labels` — **no new MCP tool**, so the
   surface stays at 5 (per the "don't grow the tool list" rule).
-- **Export**: `kanban-tui --export json|md` for git-tracked backups.
+- **Export**: `kanterm --export json|md` for git-tracked backups.
 
 ## v3 (shipped)
 
 - **Due dates**: `cards.due_date` is set via `update_card`'s `due` field
-  (`YYYY-MM-DD`, `""` clears). Dates are parsed/formatted in `kanban-core`
+  (`YYYY-MM-DD`, `""` clears). Dates are parsed/formatted in `kanterm-core`
   with Hinnant's `days_from_civil` / `civil_from_days` — no date-crate
   dependency. Overdue (`due < today_start_ms()`) is flagged in the TUI (red
   `⏰` chip / detail line) and in every MCP read (`!` / `(overdue)`).
@@ -179,11 +179,11 @@ UI-state restore.
 
 ## Testing
 
-- `kanban-core`: unit tests in-crate plus `tests/integration.rs` —
+- `kanterm-core`: unit tests in-crate plus `tests/integration.rs` —
   migration idempotency/persistence, **concurrent writers** (two threads, unique
   keys under WAL + `BEGIN IMMEDIATE`), reorder edges, cross-column move, board
   isolation/slug/prefix/cascade, clean errors.
-- `kanban-mcp`: `tests/stdio.rs` spawns the real binary and drives JSON-RPC over
+- `kanterm-mcp`: `tests/stdio.rs` spawns the real binary and drives JSON-RPC over
   stdio — the five-tool surface, the create/update/move/label flow, due/overdue
   and error handling, and multi-board addressing.
 

@@ -15,10 +15,10 @@ private vulnerability reporting channel.
 
 ## Scope
 
-kanban-tui is a local-first application. The primary security boundaries are:
+Kanterm is a local-first application. The primary security boundaries are:
 
 - local SQLite database integrity
-- MCP tool inputs from local AI agents
+- MCP tool inputs from local clients
 - terminal rendering of user-controlled task text
 
 Please include reproduction steps, affected version or commit, and the impact.

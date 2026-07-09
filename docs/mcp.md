@@ -337,7 +337,7 @@ verified independently. A useful local pattern is:
       "alias": "agent-surface-drift",
       "title": "Maintenance: MCP instructions and board context drift",
       "acceptance_criteria": "MCP server instructions, tool descriptions, and board agent_context match the current agent execution flow.",
-      "next_action": "Compare crates/kanban-mcp/src/instructions.rs, tool descriptions, and get_board board_agent_context; create or patch exact drift.",
+      "next_action": "Compare crates/kanterm-mcp/src/instructions.rs, tool descriptions, and get_board board_agent_context; create or patch exact drift.",
       "agent_weight": 2,
       "agent_effort": "medium",
       "expected_tokens": 2500

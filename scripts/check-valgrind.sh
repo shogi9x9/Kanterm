@@ -9,8 +9,8 @@ fi
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 
-echo "building kanban-core tests"
-cargo test -p kanban-core --tests --lib --no-run --message-format=json \
+echo "building kanterm-core tests"
+cargo test -p kanterm-core --tests --lib --no-run --message-format=json \
   > "$tmpdir/cargo-test.jsonl"
 
 python3 - "$tmpdir/cargo-test.jsonl" "$tmpdir/test-binaries.txt" <<'PY'
@@ -36,7 +36,7 @@ destination.write_text("\n".join(dict.fromkeys(executables)) + "\n")
 PY
 
 if [[ ! -s "$tmpdir/test-binaries.txt" ]]; then
-  echo "no kanban-core test binaries were produced" >&2
+  echo "no kanterm-core test binaries were produced" >&2
   exit 1
 fi
 

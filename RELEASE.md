@@ -8,13 +8,13 @@
 - Review `README.md` for installation instructions that match the public repo.
 - Run or create recurring maintenance cards for README/README.ja parity,
   DESIGN/DESIGN.ja parity, MCP instruction/tool description drift, and board
-  `agent_context` drift. Use `create_cards`; do not leave vague cleanup notes.
+  context drift. Use `create_cards`; do not leave vague cleanup notes.
 - Keep `LICENSE` in the repository root.
-- Before testing the new release binary against your real local board, take a
+- Before testing the new release binary against an existing board, take a
   timestamped backup outside the repo:
 
 ```sh
-./target/release/kanterm --backup-db ~/kanban-backups/kanban-$(date +%Y%m%d-%H%M%S).db
+./target/release/kanterm --backup-db <backup-file>
 ```
 
 - Run:
@@ -24,43 +24,60 @@ cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets
 cargo build --release --workspace
-cargo package --list -p kanban-core
-cargo package --list -p kanban-tui
-cargo package --list -p kanban-mcp
-cargo package -p kanban-core
-cargo package -p kanban-tui --no-verify
-cargo package -p kanban-mcp --no-verify
+cargo package --list -p kanterm-core
+cargo package --list -p kanterm
+cargo package --list -p kanterm-mcp
+cargo package -p kanterm-core
 ```
 
 CI runs the clean-worktree form above. Use `--allow-dirty` only for an explicit
 local preflight when you intentionally want to inspect package output before
 committing the current workspace changes.
 
-`kanban-tui` and `kanban-mcp` use `--no-verify` until the crates are renamed for
-crates.io. Full verification of those package tarballs currently resolves the
-registry's unrelated `kanban-core` crate, which is the publication blocker
-listed below.
+`kanterm` and `kanterm-mcp` can list package contents locally, but full package
+creation waits until `kanterm-core` is published and resolvable from crates.io.
+Cargo checks registry availability for packaged path dependencies even when
+verification is skipped.
 
 ## crates.io
 
-The current crate names are good for local development, but they are not ready
-for crates.io publication:
+The package names are aligned with the project name:
 
-- `kanban-core` is already taken on crates.io.
-- `kanban-tui` is already taken on crates.io.
-- `kanban-tui` and `kanban-mcp` depend on this workspace's `kanban-core`; if
-  published under the current names, Cargo resolves the registry's unrelated
-  `kanban-core` instead.
+- `kanterm-core`
+- `kanterm`
+- `kanterm-mcp`
 
-Before publishing to crates.io, choose available package names and update:
+Before publishing to crates.io, verify name availability and publish in
+dependency order:
 
-- `[package].name` in each crate
-- the workspace `kanban-core` dependency name/version
-- README install examples, if any
+1. `kanterm-core`
+2. `kanterm`
+3. `kanterm-mcp`
 
 Then run:
 
 ```sh
-cargo package --list -p <crate> --allow-dirty
-cargo publish --dry-run -p <crate> --allow-dirty
+cargo publish --dry-run -p <crate>
 ```
+
+## GitHub Release
+
+GitHub Releases are created by pushing a `v*` tag. For `0.1.0`:
+
+```sh
+git switch main
+git pull --ff-only
+cargo fmt --all --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace --all-targets
+cargo build --release -p kanterm -p kanterm-mcp
+git tag -a v0.1.0 -m "v0.1.0"
+git push origin main
+git push origin v0.1.0
+```
+
+The release workflow uploads:
+
+- `kanterm-linux-x86_64.tar.gz`
+- `kanterm-macos-arm64.tar.gz`
+- `SHA256SUMS`

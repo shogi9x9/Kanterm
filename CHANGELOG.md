@@ -9,6 +9,8 @@ once public releases begin.
 
 ## Unreleased
 
+## 0.1.0 - 2026-07-09
+
 - **Breaking (MCP):** `create_card` and `create_cards` now require `board`.
   Passing an existing project board slug targets that board; passing an unknown
   name creates a new workflow-template board and adds the card(s) there. Omitting
@@ -18,8 +20,10 @@ once public releases begin.
 - `create_card`/`create_cards` responses now report the destination board slug
   and whether the board already existed or was created.
 - Add local TUI kanban board backed by SQLite.
-- Add MCP server for AI agents.
+- Add MCP server for automation clients.
 - Add memory log with recall tracking and monthly cleanup.
-- Add agent workflow fields and advisory card leases.
+- Add workflow handoff fields and advisory card leases.
 - Add theme support, board ordering, and planning lanes.
+- Align Rust package names with the project name: `kanterm-core`, `kanterm`,
+  and `kanterm-mcp`.
 - Add MIT license and release preparation docs.
