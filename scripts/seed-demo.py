@@ -5,7 +5,7 @@ Speaks JSON-RPC to the release `kanterm-mcp` binary over stdio, then sets the
 TUI's restored board so the recording opens straight onto the demo board.
 
 Usage:
-    cargo build --release -p kanban-mcp -p kanban-tui
+    cargo build --release -p kanterm-mcp -p kanterm
     python3 scripts/seed-demo.py
     vhs docs/assets/demo.tape
 """

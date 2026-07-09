@@ -5,6 +5,6 @@
 #   vhs docs/assets/demo.tape
 set -euo pipefail
 cd "$(dirname "$0")/.."
-cargo build --release -p kanban-mcp -p kanban-tui
+cargo build --release -p kanterm-mcp -p kanterm
 python3 scripts/seed-demo.py
 echo "Now run: vhs docs/assets/demo.tape"

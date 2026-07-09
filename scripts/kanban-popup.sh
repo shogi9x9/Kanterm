@@ -8,7 +8,7 @@ BIN="$REPO/target/release/kanterm"
 
 if [[ ! -x "$BIN" ]]; then
     echo "Building kanterm (first run)…" >&2
-    (cd "$REPO" && cargo build --release -p kanban-tui)
+    (cd "$REPO" && cargo build --release -p kanterm)
 fi
 
 exec "$BIN"

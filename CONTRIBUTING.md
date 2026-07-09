@@ -2,7 +2,7 @@
 
 日本語版: [CONTRIBUTING.ja.md](CONTRIBUTING.ja.md)
 
-Thanks for taking the time to improve kanban-tui.
+Thanks for taking the time to improve kanterm.
 
 This repository is maintained by a single maintainer.
 **Pull requests are not accepted**.
@@ -26,7 +26,7 @@ other low-level domain behavior:
 scripts/check-valgrind.sh
 ```
 
-The script requires `valgrind` and runs the compiled `kanban-core` test
+The script requires `valgrind` and runs the compiled `kanterm-core` test
 binaries with definite/possible leaks treated as failures.
 
 Build release binaries only when needed:
@@ -37,11 +37,11 @@ cargo build --release
 
 ## Architecture
 
-- `kanban-core` owns all SQLite schema, migrations and domain rules.
-- `kanban-tui` owns terminal interaction and should stay synchronous.
-- `kanban-mcp` is a thin MCP adapter over `kanban-core`.
+- `kanterm-core` owns all SQLite schema, migrations and domain rules.
+- `kanterm` owns terminal interaction and should stay synchronous.
+- `kanterm-mcp` is a thin MCP adapter over `kanterm-core`.
 
-Prefer changes that keep database behavior in `kanban-core` and keep the TUI and
+Prefer changes that keep database behavior in `kanterm-core` and keep the TUI and
 MCP surfaces as adapters.
 
 ## Pull Requests

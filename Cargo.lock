@@ -773,7 +773,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "kanban-core"
+name = "kanterm"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "crossterm",
+ "kanterm-core",
+ "ratatui",
+ "serde",
+ "serde_json",
+ "unicode-width",
+]
+
+[[package]]
+name = "kanterm-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -786,29 +799,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "kanban-mcp"
+name = "kanterm-mcp"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "kanban-core",
+ "kanterm-core",
  "rmcp",
  "schemars",
  "serde",
  "serde_json",
  "tokio",
-]
-
-[[package]]
-name = "kanban-tui"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "crossterm",
- "kanban-core",
- "ratatui",
- "serde",
- "serde_json",
- "unicode-width",
 ]
 
 [[package]]
