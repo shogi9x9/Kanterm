@@ -81,3 +81,23 @@ The release workflow uploads:
 - `kanterm-linux-x86_64.tar.gz`
 - `kanterm-macos-arm64.tar.gz`
 - `SHA256SUMS`
+
+After the workflow completes, verify the published assets:
+
+```sh
+gh release download v0.1.0 --dir <download-dir>
+cd <download-dir>
+sha256sum -c SHA256SUMS
+tar -tzf kanterm-linux-x86_64.tar.gz
+tar -tzf kanterm-macos-arm64.tar.gz
+```
+
+Each platform archive should contain:
+
+- `README.md`
+- `LICENSE`
+- `kanterm`
+- `kanterm-mcp`
+
+Users install by unpacking the archive and copying `kanterm` and `kanterm-mcp`
+to a directory on `PATH`.

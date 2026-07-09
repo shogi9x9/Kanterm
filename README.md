@@ -32,7 +32,23 @@ and see each other's writes live.
   decisions/learnings log that survives across sessions.
 - **Themeable** — built-in `dark` / `light` themes plus JSON color overrides.
 
-## Quickstart
+## Install
+
+Download the archive for your platform from the
+[latest GitHub Release](https://github.com/shogi9x9/Kanterm/releases/latest):
+
+- `kanterm-linux-x86_64.tar.gz`
+- `kanterm-macos-arm64.tar.gz`
+
+Then unpack it and put the binaries somewhere on your `PATH`:
+
+```sh
+tar -xzf kanterm-<platform>.tar.gz
+install -m 755 kanterm-<platform>/kanterm <install-dir>/kanterm
+install -m 755 kanterm-<platform>/kanterm-mcp <install-dir>/kanterm-mcp
+```
+
+You can also build from source:
 
 ```sh
 cargo build --release
@@ -67,6 +83,10 @@ decision.
 columns, `Enter` opens a card, `n` adds one, `b` switches boards, `q` quits.
 The board remembers your focused column, selected card, and active board between
 launches.
+
+To edit a card, press `e` for a quick title edit. Open the detail modal with
+`Enter`, then press `e` to edit the title or `b` to edit the body. In the body
+editor, use `Ctrl-S` to save and `Esc` to cancel.
 
 Full keybindings, the card detail modal, label picker, themes, export, and
 backup/restore are documented in **[docs/tui.md](docs/tui.md)**.
