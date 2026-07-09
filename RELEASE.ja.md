@@ -75,3 +75,23 @@ release workflow は以下を upload します。
 - `kanterm-linux-x86_64.tar.gz`
 - `kanterm-macos-arm64.tar.gz`
 - `SHA256SUMS`
+
+workflow 完了後、公開 asset を確認します。
+
+```sh
+gh release download v0.1.0 --dir <download-dir>
+cd <download-dir>
+sha256sum -c SHA256SUMS
+tar -tzf kanterm-linux-x86_64.tar.gz
+tar -tzf kanterm-macos-arm64.tar.gz
+```
+
+各 platform archive には以下が含まれていることを確認します。
+
+- `README.md`
+- `LICENSE`
+- `kanterm`
+- `kanterm-mcp`
+
+利用者は archive を展開し、`kanterm` と `kanterm-mcp` を `PATH` の通った directory
+へ配置して install します。
