@@ -312,8 +312,6 @@ UI-state restore.
   is normalized to exactly one `Backlog` column. Project boards keep the four
   planning columns.
 
-**Still deferred (v15):** undo and richer optimistic-conflict prompts.
-
 ## v15 (shipped)
 
 - **Agent execution metadata** (migration 0016): cards carry `agent_weight`
@@ -339,8 +337,38 @@ inspection -> queue selection -> claim -> execute -> verify -> complete/memory.
 Dependency-aware plans support shapes such as `A -> B/C/D in parallel -> E`
 after fan-in.
 
+## v16 (shipped)
+
+- **Undo**: reversible card updates store a full pre-update card snapshot in the
+  activity payload. `u` restores the latest eligible update on the active board;
+  permanent deletes remain intentionally non-undoable.
+- **Optimistic concurrency**: TUI edit modes capture `updated_at` when opened and
+  pass it back as `expected_updated_at`, matching the MCP update contract. A
+  concurrent external update is rejected instead of being silently overwritten.
+- **Wide-character editing**: the body editor keeps its cursor as a character
+  index for safe string mutation, then converts the prefix to terminal display
+  width when positioning the caret. CJK and mixed-width text therefore align.
+- **Durable agent handoffs** (migration 0019): handoffs are a separate leased
+  inbox queue addressed to an exact registered identity or an agent family.
+  `send_handoff`, `list_handoffs`, `claim_handoff` and `complete_handoff` expose
+  the queue without overloading card workflow fields.
+- **Runtime delivery**: `watch-handoffs` claims and delivers inbox items through
+  command targets or thin bridge scripts. Target YAML keeps routing reusable;
+  interactive tmux/zellij target shapes are parsed but remain deferred.
+- **Small workflow runner**: workflow YAML supports named steps and an
+  `on_complete.send_handoff` action. Card completion can trigger the same runner,
+  while `run-agent-task` claims an incoming handoff, executes a command target,
+  completes its card, and optionally triggers the next step.
+- **Runtime hooks**: the Claude Code hook installer manages only Kanterm-owned
+  `SessionStart`, `SessionEnd`, and `Stop` entries and preserves unrelated hooks.
+
 ## Known follow-ups
 
-- The body editor positions the cursor by char index; wide (CJK) glyphs can
-  offset the caret by a column. Switch to display-width if it bites.
+- Replace the current optimistic-conflict error with a richer TUI recovery
+  prompt that can reload the external version or reopen the local edit.
+- Implement the reserved interactive target adapters for tmux/zellij without
+  moving runtime-specific delivery state into `kanterm-core`.
+- Persist workflow-run and per-step state before adding retries, timeouts or
+  cancellation; the current YAML runner deliberately stays a small handoff
+  trigger rather than a general CI engine.
 - Re-verify `rmcp` (pinned `=1.7.0`) on each bump.
