@@ -11,7 +11,7 @@ impl App {
             Mode::Detail { .. } => self.on_detail_key(key)?,
             Mode::AgentMetadata { .. } => self.on_agent_metadata_key(key)?,
             Mode::DependencyGraph { .. } => self.on_dependency_graph_key(key),
-            Mode::ExecutionDashboard { .. } => self.on_execution_dashboard_key(key)?,
+            Mode::ExecutionDashboard(_) => self.on_execution_dashboard_key(key)?,
             Mode::Input { .. } => self.on_input_key(key)?,
             Mode::BodyEdit { .. } => self.on_body_key(key)?,
             Mode::LabelPicker { .. } => self.on_label_key(key)?,

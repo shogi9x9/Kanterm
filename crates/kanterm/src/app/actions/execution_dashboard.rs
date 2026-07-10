@@ -3,83 +3,101 @@ use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::app::execution_dashboard::FLOW_GROUPS;
 use crate::app::App;
-use crate::mode::{ExecutionDashboardView, Mode};
+use crate::mode::{ExecutionDashboardState, ExecutionDashboardView, Mode};
 
 impl App {
     pub(crate) fn on_execution_dashboard_key(&mut self, key: KeyEvent) -> Result<()> {
-        let (view, cursor, focus) = match &self.mode {
-            Mode::ExecutionDashboard {
-                view,
-                cursor,
-                focus,
-            } => (*view, *cursor, *focus),
+        let state = match self.mode {
+            Mode::ExecutionDashboard(state) => state,
             _ => return Ok(()),
         };
+        let view = state.view;
+        let focus = state.focus;
 
         match key.code {
             KeyCode::Esc => self.should_quit = true,
             KeyCode::Char('1') => self.open_kanban(),
-            KeyCode::Tab => match view {
-                ExecutionDashboardView::Flow => self.open_kanban(),
-                _ => self.open_execution_dashboard(view.next()),
-            },
-            KeyCode::BackTab => match view {
-                ExecutionDashboardView::List => self.open_kanban(),
-                _ => self.open_execution_dashboard(view.previous()),
-            },
+            KeyCode::Tab => self.cycle_execution_tab(view, true),
+            KeyCode::BackTab => self.cycle_execution_tab(view, false),
             KeyCode::Char('2') => self.open_execution_dashboard(ExecutionDashboardView::List),
             KeyCode::Char('3') => self.open_execution_dashboard(ExecutionDashboardView::Timeline),
             KeyCode::Char('4') => self.open_execution_dashboard(ExecutionDashboardView::Flow),
-            KeyCode::Char('j') | KeyCode::Down => {
-                let len = self.dashboard_view_len(view, focus)?;
-                if len > 0 {
-                    self.set_dashboard_position(view, (cursor + 1) % len, focus);
-                }
-            }
-            KeyCode::Char('k') | KeyCode::Up => {
-                let len = self.dashboard_view_len(view, focus)?;
-                if len > 0 {
-                    self.set_dashboard_position(view, (cursor + len - 1) % len, focus);
-                }
-            }
-            KeyCode::Char('h') | KeyCode::Left => match view {
-                ExecutionDashboardView::Timeline => {
-                    self.set_dashboard_position(view, cursor, focus.saturating_sub(1));
-                }
-                ExecutionDashboardView::Flow => {
-                    let next = (focus + FLOW_GROUPS.len() - 1) % FLOW_GROUPS.len();
-                    self.set_dashboard_position(view, 0, next);
-                }
-                ExecutionDashboardView::List => {}
-            },
-            KeyCode::Char('l') | KeyCode::Right => match view {
-                ExecutionDashboardView::Timeline => {
-                    let (_, max_stages) = self.execution_timeline_items()?;
-                    self.set_dashboard_position(
-                        view,
-                        cursor,
-                        (focus + 1).min(max_stages.saturating_sub(1)),
-                    );
-                }
-                ExecutionDashboardView::Flow => {
-                    self.set_dashboard_position(view, 0, (focus + 1) % FLOW_GROUPS.len());
-                }
-                ExecutionDashboardView::List => {}
-            },
+            KeyCode::Char('j') | KeyCode::Down => self.move_dashboard_cursor(state, true)?,
+            KeyCode::Char('k') | KeyCode::Up => self.move_dashboard_cursor(state, false)?,
+            KeyCode::Char('h') | KeyCode::Left => self.move_dashboard_focus(state, false)?,
+            KeyCode::Char('l') | KeyCode::Right => self.move_dashboard_focus(state, true)?,
             KeyCode::Home => self.set_dashboard_position(view, 0, focus),
             KeyCode::End => {
                 let len = self.dashboard_view_len(view, focus)?;
                 self.set_dashboard_position(view, len.saturating_sub(1), focus);
             }
-            KeyCode::Enter => {
-                if let Some((board, key)) = self.dashboard_target(view, cursor, focus)? {
-                    self.switch_board(board)?;
-                    self.select_key(&key);
-                    self.detail_return_dashboard = Some((view, cursor, focus));
-                    self.mode = Mode::Detail { key, scroll: 0 };
-                }
-            }
+            KeyCode::Enter => self.open_dashboard_card(state)?,
             _ => {}
+        }
+        Ok(())
+    }
+
+    fn cycle_execution_tab(&mut self, view: ExecutionDashboardView, forward: bool) {
+        match (view, forward) {
+            (ExecutionDashboardView::Flow, true) | (ExecutionDashboardView::List, false) => {
+                self.open_kanban()
+            }
+            (_, true) => self.open_execution_dashboard(view.next()),
+            (_, false) => self.open_execution_dashboard(view.previous()),
+        }
+    }
+
+    fn move_dashboard_cursor(
+        &mut self,
+        mut state: ExecutionDashboardState,
+        forward: bool,
+    ) -> Result<()> {
+        let len = self.dashboard_view_len(state.view, state.focus)?;
+        if len == 0 {
+            return Ok(());
+        }
+        state.cursor = if forward {
+            (state.cursor + 1) % len
+        } else {
+            (state.cursor + len - 1) % len
+        };
+        self.mode = Mode::ExecutionDashboard(state);
+        Ok(())
+    }
+
+    fn move_dashboard_focus(
+        &mut self,
+        mut state: ExecutionDashboardState,
+        forward: bool,
+    ) -> Result<()> {
+        match state.view {
+            ExecutionDashboardView::List => return Ok(()),
+            ExecutionDashboardView::Timeline => {
+                let (_, max_stages) = self.execution_timeline_items()?;
+                state.focus = if forward {
+                    (state.focus + 1).min(max_stages.saturating_sub(1))
+                } else {
+                    state.focus.saturating_sub(1)
+                };
+            }
+            ExecutionDashboardView::Flow => {
+                state.focus = if forward {
+                    (state.focus + 1) % FLOW_GROUPS.len()
+                } else {
+                    (state.focus + FLOW_GROUPS.len() - 1) % FLOW_GROUPS.len()
+                };
+                state.cursor = 0;
+            }
+        }
+        self.mode = Mode::ExecutionDashboard(state);
+        Ok(())
+    }
+
+    fn open_dashboard_card(&mut self, state: ExecutionDashboardState) -> Result<()> {
+        if let Some(key) = self.dashboard_target(state.view, state.cursor, state.focus)? {
+            self.select_key(&key);
+            self.detail_return_dashboard = Some(state);
+            self.mode = Mode::Detail { key, scroll: 0 };
         }
         Ok(())
     }
@@ -107,11 +125,7 @@ impl App {
         cursor: usize,
         focus: usize,
     ) {
-        self.mode = Mode::ExecutionDashboard {
-            view,
-            cursor,
-            focus,
-        };
+        self.mode = Mode::ExecutionDashboard(ExecutionDashboardState::new(view, cursor, focus));
     }
 
     fn dashboard_view_len(&self, view: ExecutionDashboardView, focus: usize) -> Result<usize> {
@@ -130,26 +144,26 @@ impl App {
         view: ExecutionDashboardView,
         cursor: usize,
         focus: usize,
-    ) -> Result<Option<(kanterm_core::Board, String)>> {
+    ) -> Result<Option<String>> {
         let target = match view {
             ExecutionDashboardView::List => {
                 let items = self.execution_dashboard_items()?;
                 items
                     .get(cursor.min(items.len().saturating_sub(1)))
-                    .map(|item| (item.board.clone(), item.card.key.clone()))
+                    .map(|item| item.card.key.clone())
             }
             ExecutionDashboardView::Timeline => {
                 let items = self.execution_timeline_items()?.0;
                 items
                     .get(cursor.min(items.len().saturating_sub(1)))
-                    .map(|entry| (entry.item.board.clone(), entry.item.card.key.clone()))
+                    .map(|entry| entry.item.card.key.clone())
             }
             ExecutionDashboardView::Flow => {
                 let group = FLOW_GROUPS[focus.min(FLOW_GROUPS.len() - 1)];
                 let items = self.execution_items_for_group(group)?;
                 items
                     .get(cursor.min(items.len().saturating_sub(1)))
-                    .map(|item| (item.board.clone(), item.card.key.clone()))
+                    .map(|item| item.card.key.clone())
             }
         };
         Ok(target)
@@ -179,20 +193,20 @@ mod tests {
         app.on_normal_key(key(KeyCode::Tab)).unwrap();
         assert!(matches!(
             app.mode,
-            Mode::ExecutionDashboard {
+            Mode::ExecutionDashboard(ExecutionDashboardState {
                 view: ExecutionDashboardView::List,
                 ..
-            }
+            })
         ));
 
         app.on_execution_dashboard_key(key(KeyCode::Char('3')))
             .unwrap();
         assert!(matches!(
             app.mode,
-            Mode::ExecutionDashboard {
+            Mode::ExecutionDashboard(ExecutionDashboardState {
                 view: ExecutionDashboardView::Timeline,
                 ..
-            }
+            })
         ));
 
         app.on_execution_dashboard_key(key(KeyCode::Char('1')))
@@ -219,10 +233,10 @@ mod tests {
         app.on_detail_key(key(KeyCode::Esc)).unwrap();
         assert!(matches!(
             app.mode,
-            Mode::ExecutionDashboard {
+            Mode::ExecutionDashboard(ExecutionDashboardState {
                 view: ExecutionDashboardView::List,
                 ..
-            }
+            })
         ));
     }
 
@@ -235,6 +249,6 @@ mod tests {
         app.on_execution_dashboard_key(key(KeyCode::Esc)).unwrap();
 
         assert!(app.should_quit);
-        assert!(matches!(app.mode, Mode::ExecutionDashboard { .. }));
+        assert!(matches!(app.mode, Mode::ExecutionDashboard(_)));
     }
 }

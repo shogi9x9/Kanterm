@@ -99,8 +99,8 @@ impl App {
                 " DEPENDENCY GRAPH  j/k scroll  g/Esc back ",
                 Style::default().fg(theme().hint),
             )),
-            Mode::ExecutionDashboard { view, .. } => {
-                let help = match view {
+            Mode::ExecutionDashboard(state) => {
+                let help = match state.view {
                     crate::mode::ExecutionDashboardView::List => {
                         " EXECUTION LIST  Tab/1-4 tabs  j/k move  Enter card  1 Kanban  Esc exit "
                     }

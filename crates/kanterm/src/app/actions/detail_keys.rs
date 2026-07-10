@@ -56,11 +56,7 @@ impl App {
             }
             KeyCode::Esc | KeyCode::Char('q') => {
                 self.mode = match self.detail_return_dashboard.take() {
-                    Some((view, cursor, focus)) => Mode::ExecutionDashboard {
-                        view,
-                        cursor,
-                        focus,
-                    },
+                    Some(state) => Mode::ExecutionDashboard(state),
                     None => Mode::Normal,
                 };
             }

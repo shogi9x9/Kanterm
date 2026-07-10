@@ -1,4 +1,4 @@
-use crate::mode::{ExecutionDashboardView, Mode};
+use crate::mode::{ExecutionDashboardState, ExecutionDashboardView, Mode};
 use anyhow::Result;
 use kanterm_core::{now_ms, Board, Card, Label, Store};
 use std::collections::HashMap;
@@ -47,7 +47,7 @@ pub(crate) struct App {
     mode: Mode,
     /// Dashboard tab to restore after closing a card opened from an execution
     /// view. Kanban card details continue to return to Kanban.
-    detail_return_dashboard: Option<(ExecutionDashboardView, usize, usize)>,
+    detail_return_dashboard: Option<ExecutionDashboardState>,
     status: String,
     /// Last-seen SQLite data_version; lets us notice agent/MCP writes and
     /// auto-refresh without polling table contents.
@@ -70,11 +70,11 @@ impl App {
             cursors,
             col_cursor: 0,
             filter: None,
-            mode: Mode::ExecutionDashboard {
-                view: ExecutionDashboardView::List,
-                cursor: 0,
-                focus: 0,
-            },
+            mode: Mode::ExecutionDashboard(ExecutionDashboardState::new(
+                ExecutionDashboardView::List,
+                0,
+                0,
+            )),
             detail_return_dashboard: None,
             status: String::new(),
             data_version: 0,
