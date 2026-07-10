@@ -27,10 +27,15 @@ and see each other's writes live.
 - **Execution-oriented cards** — handoff notes, dependencies (DAGs), execution
   metadata, and per-board instructions turn a plan into claimable,
   verifiable work.
+- **Human control plane** — a cross-board execution dashboard surfaces running,
+  human-gated, ready, explicitly blocked, dependency-waiting, and
+  missing-context work as an operational list, dependency-stage timeline, or
+  derived-state flow map.
 - **Multiple boards + memory log** — `workflow` / `planning` / `simple` column
   templates, cross-board moves, archive & restore, and a durable
   decisions/learnings log that survives across sessions.
-- **Themeable** — built-in `dark` / `light` themes plus JSON color overrides.
+- **Themeable** — default `glass` theme, built-in `dark` / `light` alternatives,
+  and JSON color overrides.
 
 ## Install
 
@@ -80,7 +85,9 @@ decision.
 ```
 
 `h`/`l` move between columns, `j`/`k` within a column, `H`/`L` move a card across
-columns, `Enter` opens a card, `n` adds one, `b` switches boards, `q` quits.
+columns, `Enter` opens a card, `n` adds one, `b` switches boards, `W` opens the
+cross-board execution dashboard, and `q` quits. Kanterm starts in the execution
+dashboard; use `W` or `Esc` to move to the board.
 The board remembers your focused column, selected card, and active board between
 launches.
 

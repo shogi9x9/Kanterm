@@ -1,6 +1,6 @@
 use super::App;
 use crate::layout::centered_box;
-use crate::theme::{hex_to_color, theme};
+use crate::theme::{hex_to_color, selection_style, theme};
 use kanterm_core::Label;
 use ratatui::layout::{Constraint, Layout, Position};
 use ratatui::style::{Modifier, Style};
@@ -97,12 +97,9 @@ impl App {
                 ]))
             })
             .collect();
-        let list = List::new(items).highlight_style(
-            Style::default()
-                .bg(theme().selected_bg)
-                .fg(theme().selected_fg)
-                .add_modifier(Modifier::BOLD),
-        );
+        let list = List::new(items)
+            .highlight_style(selection_style())
+            .highlight_symbol(theme().selection_symbol);
         let mut state = ListState::default();
         if !candidates.is_empty() {
             state.select(Some(cursor.min(candidates.len() - 1)));
@@ -135,12 +132,10 @@ impl App {
                 ListItem::new(Line::from(format!("{}  ({} cards)", c.name, count)))
             })
             .collect();
-        let list = List::new(items).block(block).highlight_style(
-            Style::default()
-                .bg(theme().selected_bg)
-                .fg(theme().selected_fg)
-                .add_modifier(Modifier::BOLD),
-        );
+        let list = List::new(items)
+            .block(block)
+            .highlight_style(selection_style())
+            .highlight_symbol(theme().selection_symbol);
         let mut state = ListState::default();
         if !self.columns.is_empty() {
             state.select(Some(self.col_cursor.min(self.columns.len() - 1)));
@@ -168,12 +163,15 @@ impl App {
             .iter()
             .map(|(_, name)| ListItem::new(Line::from(name.clone())))
             .collect();
-        let list = List::new(items).block(block).highlight_style(
-            Style::default()
-                .bg(theme().warning)
-                .fg(theme().selected_fg)
-                .add_modifier(Modifier::BOLD),
-        );
+        let list = List::new(items)
+            .block(block)
+            .highlight_style(
+                Style::default()
+                    .bg(theme().warning)
+                    .fg(theme().contrast_fg)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .highlight_symbol(theme().selection_symbol);
         let mut state = ListState::default();
         if !dests.is_empty() {
             state.select(Some(cursor.min(dests.len() - 1)));

@@ -1,9 +1,10 @@
-use crate::mode::Mode;
+use crate::mode::{ExecutionDashboardView, Mode};
 use anyhow::Result;
 use kanterm_core::{now_ms, Board, Card, Label, Store};
 use std::collections::HashMap;
 
 mod actions;
+mod execution_dashboard;
 pub(crate) mod render;
 mod render_agent_metadata;
 mod render_board;
@@ -12,6 +13,9 @@ mod render_card_move_dialogs;
 mod render_dependency_graph;
 mod render_detail;
 mod render_dialogs;
+mod render_execution_dashboard;
+mod render_execution_flow;
+mod render_execution_timeline;
 mod render_memory_dialogs;
 mod render_popups;
 mod render_status;
@@ -63,7 +67,11 @@ impl App {
             cursors,
             col_cursor: 0,
             filter: None,
-            mode: Mode::Normal,
+            mode: Mode::ExecutionDashboard {
+                view: ExecutionDashboardView::List,
+                cursor: 0,
+                focus: 0,
+            },
             status: String::new(),
             data_version: 0,
             should_quit: false,

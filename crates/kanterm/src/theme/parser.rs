@@ -5,6 +5,7 @@ pub(super) fn parse_color(s: &str) -> Result<Color> {
     let s = s.trim();
     let lower = s.to_ascii_lowercase();
     let color = match lower.as_str() {
+        "reset" | "default" => Color::Reset,
         "black" => Color::Black,
         "red" => Color::Red,
         "green" => Color::Green,
@@ -62,6 +63,7 @@ mod tests {
     #[test]
     fn color_parser_accepts_names_and_hex() {
         assert_eq!(parse_color("light_cyan").unwrap(), Color::LightCyan);
+        assert_eq!(parse_color("default").unwrap(), Color::Reset);
         assert_eq!(
             parse_color("#123abc").unwrap(),
             Color::Rgb(0x12, 0x3a, 0xbc)

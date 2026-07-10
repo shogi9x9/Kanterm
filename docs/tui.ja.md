@@ -22,6 +22,7 @@ English version: [tui.md](tui.md)
 | `c`            | 列管理（追加/変更/並べ替え/削除）   |
 | `Tab`          | 次のボードへ切替                    |
 | `w`            | 次のローカル作業候補へジャンプ      |
+| `W`            | 全ボード横断の実行ダッシュボードを開く |
 | `/`            | カードを絞り込み（title/body/label）|
 | `Enter`        | カードの **詳細モーダル** を開く    |
 | `e`            | 選択カードのタイトルを簡易編集      |
@@ -36,6 +37,36 @@ English version: [tui.md](tui.md)
 
 `/` を押すと、各列を title / body / label に一致するカードへ絞り込むフィルタが
 開きます。空のフィルタを送信するとクリアされます。
+
+## 実行ダッシュボード
+
+Kanterm は既定で、全ボードのアクティブな作業を横断するこの control view から
+起動します。ボード画面から `W` で再度開けます。MCP queue と同じ core の実行分類を
+使ってカードをグループ化します:
+
+- **RUNNING**: claim 中のカード。owner と残り lease を表示。
+- **HUMAN**: review、decision、human execution gate。
+- **READY**: next action と acceptance criteria が揃った実行可能カード。
+- **BLOCKED**: 明示的 blocker reason のあるカード。
+- **WAITING**: 未完了 dependency を待つカード。blocker key は専用の
+  **WHY / NEXT** 列に表示。
+- **MISSING**: 実行 context が不足しているカード。
+
+`j` / `k` で移動、`Enter` で対象カードのボードへ切り替えて詳細を開き、`W` / `Esc`
+で戻ります。ボード画面と同じ live refresh 経路を使い、外部 MCP 更新も反映します。
+
+ダッシュボードには3つのviewがあります。`Tab` / `Shift-Tab` で巡回し、`1` / `2` / `3`
+で直接切り替えます:
+
+- **LIST**: 専用の **WHY / NEXT** 列を持つ、優先順の実行リスト。
+- **TIMELINE**: 日付ではなくdependency stageを横軸にするガント風の実行計画。同じ
+  stageで並列実行でき、`██`は配置stage、`█◆`は期日付きカードを表します。stageが
+  画面に収まらない場合は`h` / `l`で横移動します。
+- **FLOW**: 導出された実行stateと、READY / RUNNINGへ作業を流す条件を示す
+  state-machine風map。`h` / `l`でstate、`j` / `k`でそのstateのカードを選択します。
+
+TIMELINEとFLOWは既存core dataのprojectionです。calendar duration fieldを追加せず、
+TUI側にtransition policyを重複させません。
 
 ## 詳細モーダル
 
@@ -82,10 +113,18 @@ Backlog ボードはどちらもできません。
 
 ## テーマ
 
-組み込みの `dark` / `light` テーマがあります:
+既定の `glass` に加えて、組み込みの `dark` / `light` テーマがあります:
 
 ```sh
 KANBAN_THEME=light ./target/release/kanterm
+```
+
+`glass` は選択部分に端末のデフォルト背景を使い、控えめな選択マーカーと列間の余白を
+追加します。端末エミュレータ側の背景透過設定と組み合わせると、透明感のある表示に
+できます。明示的に指定する場合:
+
+```sh
+KANBAN_THEME=glass ./target/release/kanterm
 ```
 
 JSON ファイルと `KANBAN_THEME_FILE` で主要色を上書きできます:
@@ -102,8 +141,8 @@ JSON ファイルと `KANBAN_THEME_FILE` で主要色を上書きできます:
 }
 ```
 
-指定できる値は `red`・`light_cyan`・`dark_gray` のような ANSI カラー名か、
-`#ff5555` のような hex カラーです。
+指定できる値は `red`・`light_cyan`・`dark_gray` のような ANSI カラー名、端末の
+デフォルト背景に戻す `reset` / `default`、または `#ff5555` のような hex カラーです。
 
 ## memory log
 

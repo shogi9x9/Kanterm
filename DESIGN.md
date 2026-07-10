@@ -272,8 +272,9 @@ UI-state restore.
 
 ## v11 (shipped)
 
-- **TUI themes**: built-in `dark` / `light` themes are selected with
-  `KANBAN_THEME`, and `KANBAN_THEME_FILE` can override key colors with JSON.
+- **TUI themes**: `glass` is the default; built-in `dark` / `light` alternatives
+  are selected with `KANBAN_THEME`, and `KANBAN_THEME_FILE` can override key
+  colors with JSON.
   Priority remains badge-first (`[H]`, `[M]`, `[L]`) so colour is useful but not
   required for understanding.
 
@@ -311,8 +312,6 @@ UI-state restore.
   is normalized to exactly one `Backlog` column. Project boards keep the four
   planning columns.
 
-**Still deferred (v15):** undo and richer optimistic-conflict prompts.
-
 ## v15 (shipped)
 
 - **Agent execution metadata** (migration 0016): cards carry `agent_weight`
@@ -338,8 +337,58 @@ inspection -> queue selection -> claim -> execute -> verify -> complete/memory.
 Dependency-aware plans support shapes such as `A -> B/C/D in parallel -> E`
 after fan-in.
 
+## v16 (shipped)
+
+- **Undo**: reversible card updates store a full pre-update card snapshot in the
+  activity payload. `u` restores the latest eligible update on the active board;
+  permanent deletes remain intentionally non-undoable.
+- **Optimistic concurrency**: TUI edit modes capture `updated_at` when opened and
+  pass it back as `expected_updated_at`, matching the MCP update contract. A
+  concurrent external update is rejected instead of being silently overwritten.
+- **Wide-character editing**: the body editor keeps its cursor as a character
+  index for safe string mutation, then converts the prefix to terminal display
+  width when positioning the caret. CJK and mixed-width text therefore align.
+- **Durable agent handoffs** (migration 0019): handoffs are a separate leased
+  inbox queue addressed to an exact registered identity or an agent family.
+  `send_handoff`, `list_handoffs`, `claim_handoff` and `complete_handoff` expose
+  the queue without overloading card workflow fields.
+- **Runtime delivery**: `watch-handoffs` claims and delivers inbox items through
+  command targets or thin bridge scripts. Target YAML keeps routing reusable;
+  interactive tmux/zellij target shapes are parsed but remain deferred.
+- **Small workflow runner**: workflow YAML supports named steps and an
+  `on_complete.send_handoff` action. Card completion can trigger the same runner,
+  while `run-agent-task` claims an incoming handoff, executes a command target,
+  completes its card, and optionally triggers the next step.
+- **Runtime hooks**: the Claude Code hook installer manages only Kanterm-owned
+  `SessionStart`, `SessionEnd`, and `Stop` entries and preserves unrelated hooks.
+
+## v17 (shipped)
+
+- **Execution dashboard**: the TUI starts in a primary, cross-board view over
+  every active card; `W` toggles it from the board. It groups work into running,
+  human-gated, ready, explicitly blocked, dependency-waiting and missing-context
+  buckets. Separate title and why/next columns keep dependency keys, blocker
+  reasons and next actions visible at normal terminal widths.
+- **One execution policy**: dashboard grouping calls `classify_work` from
+  `kanterm-core`, the same source used by local next-work navigation and MCP
+  queue filtering. The TUI does not duplicate queue precedence.
+- **Control-plane navigation**: `j` / `k` moves through the ranked work list and
+  `Enter` switches to the owning board before opening the card detail. External
+  MCP writes repaint the dashboard through the existing `data_version` refresh.
+- **Execution projections**: `Tab` cycles LIST, TIMELINE and FLOW (`1` / `2` /
+  `3` select directly). TIMELINE maps `dependency_stage_plan` to a Gantt-like
+  stage axis, keeping parallel cards in one column without inventing calendar
+  duration. FLOW places live `classify_work` counts on a state-machine-style map
+  and exposes the cards in the selected state. Neither view owns execution
+  policy; both are read projections over `kanterm-core`.
+
 ## Known follow-ups
 
-- The body editor positions the cursor by char index; wide (CJK) glyphs can
-  offset the caret by a column. Switch to display-width if it bites.
+- Replace the current optimistic-conflict error with a richer TUI recovery
+  prompt that can reload the external version or reopen the local edit.
+- Implement the reserved interactive target adapters for tmux/zellij without
+  moving runtime-specific delivery state into `kanterm-core`.
+- Persist workflow-run and per-step state before adding retries, timeouts or
+  cancellation; the current YAML runner deliberately stays a small handoff
+  trigger rather than a general CI engine.
 - Re-verify `rmcp` (pinned `=1.7.0`) on each bump.

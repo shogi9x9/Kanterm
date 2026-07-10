@@ -12,6 +12,7 @@ pub(super) struct ThemeOverride {
     muted: Option<String>,
     selected_fg: Option<String>,
     selected_bg: Option<String>,
+    contrast_fg: Option<String>,
     success: Option<String>,
     warning: Option<String>,
     danger: Option<String>,
@@ -35,6 +36,7 @@ pub(super) fn apply_theme_override(t: &mut Theme, o: ThemeOverride) -> Result<()
     set_color!(muted);
     set_color!(selected_fg);
     set_color!(selected_bg);
+    set_color!(contrast_fg);
     set_color!(success);
     set_color!(warning);
     set_color!(danger);

@@ -10,7 +10,7 @@ use std::sync::OnceLock;
 
 use overrides::{apply_theme_override, ThemeOverride};
 pub(crate) use parser::hex_to_color;
-use presets::{dark_theme, light_theme};
+use presets::{dark_theme, glass_theme, light_theme};
 
 static THEME: OnceLock<Theme> = OnceLock::new();
 
@@ -22,24 +22,32 @@ pub(crate) struct Theme {
     pub muted: Color,
     pub selected_fg: Color,
     pub selected_bg: Color,
+    pub contrast_fg: Color,
     pub success: Color,
     pub warning: Color,
     pub danger: Color,
     pub priority_high: Color,
     pub priority_normal: Color,
     pub priority_low: Color,
+    pub selection_symbol: &'static str,
+    pub column_spacing: u16,
 }
 
 pub(crate) fn theme() -> &'static Theme {
-    THEME.get_or_init(dark_theme)
+    THEME.get_or_init(glass_theme)
 }
 
 pub(crate) fn init_theme() -> Result<()> {
-    let name = std::env::var("KANBAN_THEME").unwrap_or_else(|_| "dark".into());
+    let name = std::env::var("KANBAN_THEME").unwrap_or_else(|_| "glass".into());
     let mut t = match name.as_str() {
         "dark" => dark_theme(),
+        "glass" => glass_theme(),
         "light" => light_theme(),
-        other => return Err(anyhow!("unknown KANBAN_THEME '{other}'; use dark or light")),
+        other => {
+            return Err(anyhow!(
+                "unknown KANBAN_THEME '{other}'; use dark, glass, or light"
+            ))
+        }
     };
     if let Some(path) = std::env::var_os("KANBAN_THEME_FILE") {
         let text = std::fs::read_to_string(&path).with_context(|| {
@@ -58,6 +66,13 @@ pub(crate) fn init_theme() -> Result<()> {
     }
     let _ = THEME.set(t);
     Ok(())
+}
+
+pub(crate) fn selection_style() -> Style {
+    Style::default()
+        .fg(theme().selected_fg)
+        .bg(theme().selected_bg)
+        .add_modifier(Modifier::BOLD)
 }
 
 fn priority_style(priority: i64) -> Style {

@@ -1,6 +1,6 @@
 use super::App;
 use crate::layout::centered_box;
-use crate::theme::theme;
+use crate::theme::{selection_style, theme};
 use kanterm_core::format_date;
 use ratatui::layout::Constraint;
 use ratatui::style::{Modifier, Style};
@@ -63,12 +63,10 @@ impl App {
                 ListItem::new(Line::from(spans))
             })
             .collect();
-        let list = List::new(items).block(block).highlight_style(
-            Style::default()
-                .bg(theme().selected_bg)
-                .fg(theme().selected_fg)
-                .add_modifier(Modifier::BOLD),
-        );
+        let list = List::new(items)
+            .block(block)
+            .highlight_style(selection_style())
+            .highlight_symbol(theme().selection_symbol);
         let mut state = ListState::default();
         state.select(Some(cursor.min(memories.len() - 1)));
         f.render_stateful_widget(list, area, &mut state);

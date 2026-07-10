@@ -1,9 +1,9 @@
 use super::App;
 use crate::layout::centered_box;
-use crate::theme::theme;
+use crate::theme::{selection_style, theme};
 use kanterm_core::PROTECTED_BOARD_SLUG;
 use ratatui::layout::{Constraint, Layout};
-use ratatui::style::{Modifier, Style};
+use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Clear, List, ListItem, ListState, Paragraph};
 use ratatui::Frame;
@@ -60,12 +60,9 @@ impl App {
                 ]))
             })
             .collect();
-        let list = List::new(items).highlight_style(
-            Style::default()
-                .bg(theme().selected_bg)
-                .fg(theme().selected_fg)
-                .add_modifier(Modifier::BOLD),
-        );
+        let list = List::new(items)
+            .highlight_style(selection_style())
+            .highlight_symbol(theme().selection_symbol);
         let mut state = ListState::default();
         if !destinations.is_empty() {
             state.select(Some(cursor.min(destinations.len() - 1)));
@@ -134,12 +131,9 @@ impl App {
                 ]))
             })
             .collect();
-        let list = List::new(items).highlight_style(
-            Style::default()
-                .bg(theme().selected_bg)
-                .fg(theme().selected_fg)
-                .add_modifier(Modifier::BOLD),
-        );
+        let list = List::new(items)
+            .highlight_style(selection_style())
+            .highlight_symbol(theme().selection_symbol);
         let mut state = ListState::default();
         if !columns.is_empty() {
             state.select(Some(cursor.min(columns.len() - 1)));
