@@ -9,11 +9,19 @@ once public releases begin.
 
 ## Unreleased
 
-- Make a cross-board execution dashboard the first TUI view (`W`), covering
-  running, human-gated, ready, explicitly blocked, dependency-waiting, and
-  missing-context work with direct navigation to card detail and visible
-  blocker keys. Add LIST, dependency-stage TIMELINE, and derived-state FLOW
-  projections with `Tab` and `1` / `2` / `3` navigation.
+- No changes yet.
+
+## 0.2.0 - 2026-07-10
+
+- Make a board-scoped execution dashboard the first TUI view, covering running,
+  human-gated, ready, explicitly blocked, dependency-waiting, and
+  missing-context work with visible blocker keys.
+- Add first-class Kanban, LIST, dependency-stage TIMELINE, and derived-state
+  FLOW tabs with `Tab` / `Shift+Tab` and `1` / `2` / `3` / `4` navigation.
+- Keep card detail as a modal over the execution tab that opened it, preserving
+  the originating tab and selection when the modal closes.
+- Refactor dashboard state, input navigation, data projection, and rendering
+  responsibilities, removing redundant board reloads from card-detail opens.
 - Add the default transparent-background `glass` theme and modernize the TUI
   header, column spacing, selection markers, and responsive key hints.
 

@@ -6,10 +6,18 @@
 
 ## Unreleased
 
-- running、human gate、ready、明示的 blocked、dependency waiting、context不足の作業を
-  横断表示し、blocker key の確認とカード詳細への直接移動ができる実行ダッシュボード
-  （`W`）をTUIのfirst viewとして追加。`Tab`および`1` / `2` / `3`で切り替えるLIST、
-  dependency stage TIMELINE、導出state FLOWを提供。
+- 現在、未リリースの変更はありません。
+
+## 0.2.0 - 2026-07-10
+
+- running、human gate、ready、明示的 blocked、dependency waiting、context不足の作業と
+  blocker keyをボード単位で確認できる実行ダッシュボードをTUIのfirst viewとして追加。
+- Kanban、LIST、dependency stage TIMELINE、導出state FLOWをfirst-class tabとして提供し、
+  `Tab` / `Shift+Tab`および`1` / `2` / `3` / `4`で切り替え可能に変更。
+- カード詳細を開いた実行タブ上のモーダルとして表示し、閉じたときに元のタブと選択位置を
+  復元するように変更。
+- dashboard state、input navigation、data projection、renderingの責務を整理し、
+  カード詳細を開く際の不要なボード再読込を削除。
 - 端末のデフォルト背景を使う `glass` テーマを既定にし、TUI header、列間余白、
   選択 marker、responsive key hint を刷新。
 
