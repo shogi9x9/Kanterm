@@ -39,7 +39,10 @@ impl App {
         f.render_widget(
             Paragraph::new(vec![
                 Line::from(Span::styled(
-                    "Derived states · every change is re-classified by kanterm-core",
+                    format!(
+                        "{} · derived states · every change is re-classified by kanterm-core",
+                        self.board.name
+                    ),
                     Style::default().fg(theme().help),
                 )),
                 Line::from(vec![

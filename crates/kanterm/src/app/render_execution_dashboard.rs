@@ -56,14 +56,14 @@ impl App {
         };
         let primary = count_line(&DashboardGroup::ALL[..3]);
         let mut secondary = vec![Span::styled(
-            format!(" {} active boards  ", self.boards.len()),
+            " active board  ".to_string(),
             Style::default().fg(theme().muted),
         )];
         secondary.extend(count_line(&DashboardGroup::ALL[3..]));
         f.render_widget(
             Paragraph::new(vec![
                 Line::from(Span::styled(
-                    "All boards · live execution state",
+                    format!("{} · live execution state", self.board.name),
                     Style::default().fg(theme().help),
                 )),
                 Line::from(primary),
@@ -92,6 +92,8 @@ fn dashboard_block(view: ExecutionDashboardView) -> Block<'static> {
             .fg(theme().accent)
             .add_modifier(Modifier::BOLD),
     )];
+    title.push(Span::styled(" KANBAN ", Style::default().fg(theme().muted)));
+    title.push(Span::raw(" "));
     for candidate in [
         ExecutionDashboardView::List,
         ExecutionDashboardView::Timeline,

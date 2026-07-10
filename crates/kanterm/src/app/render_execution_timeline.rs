@@ -31,7 +31,10 @@ impl App {
         f.render_widget(
             Paragraph::new(vec![
                 Line::from(Span::styled(
-                    "Dependency stages · parallel cards share a column",
+                    format!(
+                        "{} · dependency stages · parallel cards share a column",
+                        self.board.name
+                    ),
                     Style::default().fg(theme().help),
                 )),
                 Line::from(vec![
@@ -60,10 +63,6 @@ impl App {
 
         let rows = items.iter().map(|entry| {
             let mut cells = vec![
-                Cell::from(Span::styled(
-                    entry.item.board.slug.clone(),
-                    Style::default().fg(theme().muted),
-                )),
                 Cell::from(Span::styled(
                     entry.item.card.key.clone(),
                     Style::default().fg(theme().warning),
@@ -101,14 +100,8 @@ impl App {
             Row::new(cells)
         });
 
-        let mut header_cells = vec![
-            "BOARD".to_string(),
-            "CARD".to_string(),
-            "STATE".to_string(),
-            "TITLE".to_string(),
-        ];
+        let mut header_cells = vec!["CARD".to_string(), "STATE".to_string(), "TITLE".to_string()];
         let mut constraints = vec![
-            Constraint::Length(14),
             Constraint::Length(8),
             Constraint::Length(9),
             Constraint::Min(18),

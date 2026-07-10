@@ -31,6 +31,23 @@ impl App {
             return;
         }
 
+        // A detail opened from LIST, TIMELINE, or FLOW is an overlay on that
+        // execution view, not a navigation back to the Kanban board.
+        if let (Mode::Detail { key, scroll }, Some((view, cursor, focus))) =
+            (&self.mode, self.detail_return_dashboard)
+        {
+            let dashboard_area = Rect::new(
+                f.area().x,
+                f.area().y,
+                f.area().width,
+                f.area().height.saturating_sub(status_area.height),
+            );
+            self.draw_execution_dashboard(f, dashboard_area, view, cursor, focus);
+            self.draw_status(f, status_area);
+            self.draw_detail(f, key, *scroll);
+            return;
+        }
+
         self.draw_header(f, header_area);
 
         if self.columns.is_empty() {
