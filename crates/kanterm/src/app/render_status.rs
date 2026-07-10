@@ -99,6 +99,20 @@ impl App {
                 " DEPENDENCY GRAPH  j/k scroll  g/Esc back ",
                 Style::default().fg(theme().hint),
             )),
+            Mode::ExecutionDashboard { view, .. } => {
+                let help = match view {
+                    crate::mode::ExecutionDashboardView::List => {
+                        " EXECUTION LIST  Tab/1-3 views  j/k move  Enter card  W/Esc board "
+                    }
+                    crate::mode::ExecutionDashboardView::Timeline => {
+                        " EXECUTION TIMELINE  Tab/1-3 views  h/l stages  j/k move  Enter card  W/Esc board "
+                    }
+                    crate::mode::ExecutionDashboardView::Flow => {
+                        " EXECUTION FLOW  Tab/1-3 views  h/l state  j/k cards  Enter card  W/Esc board "
+                    }
+                };
+                Line::from(Span::styled(help, Style::default().fg(theme().hint)))
+            }
             Mode::Normal => {
                 let detail = self
                     .selected_card()
@@ -110,6 +124,7 @@ impl App {
                         ("J/K", "order"),
                         ("n", "new"),
                         ("M", "send"),
+                        ("W", "exec"),
                         ("↵", "open"),
                         ("/", "find"),
                         ("b", "boards"),
@@ -121,6 +136,7 @@ impl App {
                         ("j/k", "cards"),
                         ("H/L", "move"),
                         ("n", "new"),
+                        ("W", "exec"),
                         ("↵", "open"),
                         ("/", "find"),
                         ("b", "boards"),

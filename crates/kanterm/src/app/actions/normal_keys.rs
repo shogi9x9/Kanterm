@@ -2,7 +2,7 @@ use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::app::App;
-use crate::mode::{ArchiveBack, InputKind, Mode};
+use crate::mode::{ArchiveBack, ExecutionDashboardView, InputKind, Mode};
 use kanterm_core::PROTECTED_BOARD_SLUG;
 
 impl App {
@@ -70,6 +70,13 @@ impl App {
             }
             KeyCode::Char('v') => self.jump_to_human_intervention(),
             KeyCode::Char('w') => self.jump_to_next_work(),
+            KeyCode::Char('W') => {
+                self.mode = Mode::ExecutionDashboard {
+                    view: ExecutionDashboardView::List,
+                    cursor: 0,
+                    focus: 0,
+                };
+            }
             KeyCode::Char('g') => {
                 self.mode = Mode::DependencyGraph { scroll: 0 };
             }

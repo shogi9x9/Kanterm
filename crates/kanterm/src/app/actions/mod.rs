@@ -7,6 +7,7 @@ mod card_transfer;
 mod columns;
 mod detail_keys;
 mod edit_keys;
+mod execution_dashboard;
 mod key_input;
 mod labels;
 mod memory;

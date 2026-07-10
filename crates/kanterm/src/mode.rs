@@ -1,6 +1,39 @@
 use crate::editor::Editor;
 use kanterm_core::Label;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ExecutionDashboardView {
+    List,
+    Timeline,
+    Flow,
+}
+
+impl ExecutionDashboardView {
+    pub(crate) fn next(self) -> Self {
+        match self {
+            Self::List => Self::Timeline,
+            Self::Timeline => Self::Flow,
+            Self::Flow => Self::List,
+        }
+    }
+
+    pub(crate) fn previous(self) -> Self {
+        match self {
+            Self::List => Self::Flow,
+            Self::Timeline => Self::List,
+            Self::Flow => Self::Timeline,
+        }
+    }
+
+    pub(crate) fn label(self) -> &'static str {
+        match self {
+            Self::List => "LIST",
+            Self::Timeline => "TIMELINE",
+            Self::Flow => "FLOW",
+        }
+    }
+}
+
 pub(crate) enum Mode {
     Normal,
     Detail {
@@ -13,6 +46,12 @@ pub(crate) enum Mode {
     },
     DependencyGraph {
         scroll: u16,
+    },
+    /// Cross-board view of executable, running, human-gated and blocked work.
+    ExecutionDashboard {
+        view: ExecutionDashboardView,
+        cursor: usize,
+        focus: usize,
     },
     Input {
         kind: InputKind,
@@ -141,5 +180,30 @@ impl InputKind {
             InputKind::NewColumn => "new column name",
             InputKind::RenameColumn(_) => "rename column",
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ExecutionDashboardView;
+
+    #[test]
+    fn dashboard_views_cycle_in_both_directions() {
+        assert_eq!(
+            ExecutionDashboardView::List.next(),
+            ExecutionDashboardView::Timeline
+        );
+        assert_eq!(
+            ExecutionDashboardView::Timeline.next(),
+            ExecutionDashboardView::Flow
+        );
+        assert_eq!(
+            ExecutionDashboardView::Flow.next(),
+            ExecutionDashboardView::List
+        );
+        assert_eq!(
+            ExecutionDashboardView::List.previous(),
+            ExecutionDashboardView::Flow
+        );
     }
 }

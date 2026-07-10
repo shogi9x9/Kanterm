@@ -6,6 +6,13 @@
 
 ## Unreleased
 
+- running、human gate、ready、明示的 blocked、dependency waiting、context不足の作業を
+  横断表示し、blocker key の確認とカード詳細への直接移動ができる実行ダッシュボード
+  （`W`）をTUIのfirst viewとして追加。`Tab`および`1` / `2` / `3`で切り替えるLIST、
+  dependency stage TIMELINE、導出state FLOWを提供。
+- 端末のデフォルト背景を使う `glass` テーマを既定にし、TUI header、列間余白、
+  選択 marker、responsive key hint を刷新。
+
 ## 0.1.0 - 2026-07-09
 
 - **破壊的変更 (MCP):** `create_card` と `create_cards` で `board` を必須化。

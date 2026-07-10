@@ -22,6 +22,7 @@
 | `c`            | manage columns (add/rename/reorder/delete) |
 | `Tab`          | switch to the next board            |
 | `w`            | jump to the next local work candidate |
+| `W`            | open the cross-board execution dashboard |
 | `/`            | filter cards (title/body/label)     |
 | `Enter`        | open the card **detail modal**      |
 | `e`            | quick-edit the selected card's title |
@@ -36,6 +37,39 @@
 
 `/` opens a filter that narrows every column to cards matching the text in their
 title, body or labels; submit an empty filter to clear it.
+
+## Execution dashboard
+
+Kanterm opens in this cross-board control view by default. From the board, press
+`W` to reopen it. It groups all active work using the same core execution
+classification as MCP queues:
+
+- **RUNNING**: actively claimed cards, with owner and remaining lease.
+- **HUMAN**: review, decision, or human-execution gates.
+- **READY**: executable cards with a next action and acceptance criteria.
+- **BLOCKED**: cards with an explicit blocker reason.
+- **WAITING**: cards waiting on unfinished dependencies; blocker keys appear in
+  the dedicated **WHY / NEXT** column.
+- **MISSING**: cards that still need execution context.
+
+Use `j` / `k` to move, `Enter` to switch to the card's board and open its detail,
+and `W` / `Esc` to return. The dashboard follows external MCP writes through the
+same live-refresh path as the board.
+
+The dashboard has three views. Press `Tab` / `Shift-Tab` to cycle or `1` / `2` /
+`3` to jump directly:
+
+- **LIST**: ranked operational work with a dedicated **WHY / NEXT** column.
+- **TIMELINE**: a Gantt-like execution plan whose horizontal axis is dependency
+  stage rather than calendar time. Parallel cards share a stage; `██` marks the
+  assigned stage and `█◆` marks a card that also has a due date. Use `h` / `l`
+  when more stages exist than fit on screen.
+- **FLOW**: a state-machine-style map of the derived execution states and the
+  conditions that feed work toward READY and RUNNING. Use `h` / `l` to select a
+  state and `j` / `k` to select one of its current cards.
+
+TIMELINE and FLOW are projections of existing core data. They do not add
+calendar-duration fields or duplicate transition policy in the TUI.
 
 ## Detail modal
 

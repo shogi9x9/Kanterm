@@ -1,7 +1,7 @@
 use super::App;
 use crate::mode::Mode;
 use crate::theme::theme;
-use ratatui::layout::{Constraint, Layout};
+use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 
@@ -13,6 +13,23 @@ impl App {
             Constraint::Length(1),
         ])
         .areas(f.area());
+
+        if let Mode::ExecutionDashboard {
+            view,
+            cursor,
+            focus,
+        } = &self.mode
+        {
+            let dashboard_area = Rect::new(
+                f.area().x,
+                f.area().y,
+                f.area().width,
+                f.area().height.saturating_sub(status_area.height),
+            );
+            self.draw_execution_dashboard(f, dashboard_area, *view, *cursor, *focus);
+            self.draw_status(f, status_area);
+            return;
+        }
 
         self.draw_header(f, header_area);
 
@@ -38,6 +55,7 @@ impl App {
             Mode::Detail { key, scroll } => self.draw_detail(f, key, *scroll),
             Mode::AgentMetadata { key, scroll } => self.draw_agent_metadata(f, key, *scroll),
             Mode::DependencyGraph { scroll } => self.draw_dependency_graph(f, *scroll),
+            Mode::ExecutionDashboard { .. } => {}
             Mode::BodyEdit { key, editor, .. } => self.draw_body_edit(f, key, editor),
             Mode::Input { kind, buffer } => self.draw_input_popup(f, kind.label(), buffer),
             Mode::LabelPicker {

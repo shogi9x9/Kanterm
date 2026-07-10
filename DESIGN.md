@@ -362,6 +362,26 @@ after fan-in.
 - **Runtime hooks**: the Claude Code hook installer manages only Kanterm-owned
   `SessionStart`, `SessionEnd`, and `Stop` entries and preserves unrelated hooks.
 
+## v17 (shipped)
+
+- **Execution dashboard**: the TUI starts in a primary, cross-board view over
+  every active card; `W` toggles it from the board. It groups work into running,
+  human-gated, ready, explicitly blocked, dependency-waiting and missing-context
+  buckets. Separate title and why/next columns keep dependency keys, blocker
+  reasons and next actions visible at normal terminal widths.
+- **One execution policy**: dashboard grouping calls `classify_work` from
+  `kanterm-core`, the same source used by local next-work navigation and MCP
+  queue filtering. The TUI does not duplicate queue precedence.
+- **Control-plane navigation**: `j` / `k` moves through the ranked work list and
+  `Enter` switches to the owning board before opening the card detail. External
+  MCP writes repaint the dashboard through the existing `data_version` refresh.
+- **Execution projections**: `Tab` cycles LIST, TIMELINE and FLOW (`1` / `2` /
+  `3` select directly). TIMELINE maps `dependency_stage_plan` to a Gantt-like
+  stage axis, keeping parallel cards in one column without inventing calendar
+  duration. FLOW places live `classify_work` counts on a state-machine-style map
+  and exposes the cards in the selected state. Neither view owns execution
+  policy; both are read projections over `kanterm-core`.
+
 ## Known follow-ups
 
 - Replace the current optimistic-conflict error with a richer TUI recovery

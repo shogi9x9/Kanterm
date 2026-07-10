@@ -9,6 +9,14 @@ once public releases begin.
 
 ## Unreleased
 
+- Make a cross-board execution dashboard the first TUI view (`W`), covering
+  running, human-gated, ready, explicitly blocked, dependency-waiting, and
+  missing-context work with direct navigation to card detail and visible
+  blocker keys. Add LIST, dependency-stage TIMELINE, and derived-state FLOW
+  projections with `Tab` and `1` / `2` / `3` navigation.
+- Add the default transparent-background `glass` theme and modernize the TUI
+  header, column spacing, selection markers, and responsive key hints.
+
 ## 0.1.0 - 2026-07-09
 
 - **Breaking (MCP):** `create_card` and `create_cards` now require `board`.
