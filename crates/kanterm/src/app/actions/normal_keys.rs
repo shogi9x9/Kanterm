@@ -19,10 +19,9 @@ impl App {
             KeyCode::Char('k') | KeyCode::Up => self.cursor_delta(-1),
             KeyCode::Enter => {
                 if let Some(c) = self.selected_card() {
-                    self.mode = Mode::Detail {
-                        key: c.key.clone(),
-                        scroll: 0,
-                    };
+                    let key = c.key.clone();
+                    self.detail_return_dashboard = None;
+                    self.mode = Mode::Detail { key, scroll: 0 };
                 }
             }
             KeyCode::Char('n') => {
@@ -37,7 +36,8 @@ impl App {
                     buffer: String::new(),
                 };
             }
-            KeyCode::Tab | KeyCode::BackTab => self.cycle_board()?,
+            KeyCode::Tab => self.open_execution_dashboard(ExecutionDashboardView::List),
+            KeyCode::BackTab => self.open_execution_dashboard(ExecutionDashboardView::Flow),
             KeyCode::Char('b') => {
                 let cursor = self
                     .boards
@@ -70,13 +70,6 @@ impl App {
             }
             KeyCode::Char('v') => self.jump_to_human_intervention(),
             KeyCode::Char('w') => self.jump_to_next_work(),
-            KeyCode::Char('W') => {
-                self.mode = Mode::ExecutionDashboard {
-                    view: ExecutionDashboardView::List,
-                    cursor: 0,
-                    focus: 0,
-                };
-            }
             KeyCode::Char('g') => {
                 self.mode = Mode::DependencyGraph { scroll: 0 };
             }

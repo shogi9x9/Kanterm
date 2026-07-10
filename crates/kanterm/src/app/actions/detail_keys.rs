@@ -54,7 +54,12 @@ impl App {
                     scroll: u16::MAX,
                 };
             }
-            KeyCode::Esc | KeyCode::Char('q') => self.mode = Mode::Normal,
+            KeyCode::Esc | KeyCode::Char('q') => {
+                self.mode = match self.detail_return_dashboard.take() {
+                    Some(state) => Mode::ExecutionDashboard(state),
+                    None => Mode::Normal,
+                };
+            }
             KeyCode::Char('e') => {
                 if let Some(c) = self.card_by_key(&card_key) {
                     let title = c.title.clone();

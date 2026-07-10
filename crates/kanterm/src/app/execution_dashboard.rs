@@ -77,7 +77,6 @@ pub(crate) struct DashboardItem {
     pub(crate) state: WorkState,
     pub(crate) group: DashboardGroup,
     pub(crate) blocked_by: Vec<String>,
-    board_order: usize,
     card_order: usize,
 }
 
@@ -184,33 +183,29 @@ impl App {
     pub(crate) fn execution_dashboard_items(&self) -> Result<Vec<DashboardItem>> {
         let now = now_ms();
         let mut items = Vec::new();
-        for (board_order, board) in self.boards.iter().enumerate() {
-            for (card_order, card) in self.store.cards(&board.id)?.into_iter().enumerate() {
-                let readiness = self.store.card_readiness(&board.id, &card.key)?;
-                let state = classify_work(&card, &readiness, now);
-                if state == WorkState::Closed {
-                    continue;
-                }
-                items.push(DashboardItem {
-                    board: board.clone(),
-                    card,
-                    state,
-                    group: state.into(),
-                    blocked_by: readiness
-                        .blocked_by
-                        .into_iter()
-                        .map(|card| card.key)
-                        .collect(),
-                    board_order,
-                    card_order,
-                });
+        for (card_order, card) in self.store.cards(&self.board.id)?.into_iter().enumerate() {
+            let readiness = self.store.card_readiness(&self.board.id, &card.key)?;
+            let state = classify_work(&card, &readiness, now);
+            if state == WorkState::Closed {
+                continue;
             }
+            items.push(DashboardItem {
+                board: self.board.clone(),
+                card,
+                state,
+                group: state.into(),
+                blocked_by: readiness
+                    .blocked_by
+                    .into_iter()
+                    .map(|card| card.key)
+                    .collect(),
+                card_order,
+            });
         }
         items.sort_by_key(|item| {
             (
                 item.group.rank(),
                 std::cmp::Reverse(item.card.priority),
-                item.board_order,
                 item.card_order,
             )
         });
@@ -219,14 +214,11 @@ impl App {
 
     pub(crate) fn execution_timeline_items(&self) -> Result<(Vec<TimelineItem>, usize)> {
         let mut stage_by_card = HashMap::new();
-        let mut max_stages = 0;
-        for board in &self.boards {
-            let plan = self.store.dependency_stage_plan(&board.id)?;
-            max_stages = max_stages.max(plan.ready_stages.len());
-            for (stage, keys) in plan.ready_stages.into_iter().enumerate() {
-                for key in keys {
-                    stage_by_card.insert((board.id.clone(), key), stage);
-                }
+        let plan = self.store.dependency_stage_plan(&self.board.id)?;
+        let max_stages = plan.ready_stages.len();
+        for (stage, keys) in plan.ready_stages.into_iter().enumerate() {
+            for key in keys {
+                stage_by_card.insert(key, stage);
             }
         }
 
@@ -234,19 +226,11 @@ impl App {
             .execution_dashboard_items()?
             .into_iter()
             .map(|item| TimelineItem {
-                stage: stage_by_card
-                    .get(&(item.board.id.clone(), item.card.key.clone()))
-                    .copied(),
+                stage: stage_by_card.get(&item.card.key).copied(),
                 item,
             })
             .collect::<Vec<_>>();
-        timeline.sort_by_key(|entry| {
-            (
-                entry.item.board_order,
-                entry.stage.unwrap_or(max_stages),
-                entry.item.card_order,
-            )
-        });
+        timeline.sort_by_key(|entry| (entry.stage.unwrap_or(max_stages), entry.item.card_order));
         Ok((timeline, max_stages))
     }
 
@@ -291,7 +275,7 @@ mod tests {
     use kanterm_core::{BoardColumnTemplate, CardPatch, Store};
 
     #[test]
-    fn dashboard_collects_active_work_across_boards() {
+    fn dashboard_collects_active_work_for_the_active_board() {
         let mut store = Store::open_in_memory().unwrap();
         let backlog = store.ensure_default_board().unwrap();
         let ready = store
@@ -320,11 +304,10 @@ mod tests {
         let app = App::new(store, backlog).unwrap();
         let items = app.execution_dashboard_items().unwrap();
 
-        assert_eq!(items.len(), 2);
+        assert_eq!(items.len(), 1);
         assert_eq!(items[0].group, DashboardGroup::Ready);
         assert_eq!(items[0].board.slug, "backlog");
-        assert_eq!(items[1].group, DashboardGroup::Missing);
-        assert_eq!(items[1].board.slug, work.slug);
+        assert_ne!(items[0].board.slug, work.slug);
     }
 
     #[test]
@@ -335,11 +318,11 @@ mod tests {
 
         assert!(matches!(
             app.mode,
-            crate::mode::Mode::ExecutionDashboard {
+            crate::mode::Mode::ExecutionDashboard(crate::mode::ExecutionDashboardState {
                 view: crate::mode::ExecutionDashboardView::List,
                 cursor: 0,
                 focus: 0,
-            }
+            })
         ));
     }
 
@@ -363,7 +346,7 @@ mod tests {
     }
 
     #[test]
-    fn timeline_uses_dependency_stages_across_active_cards() {
+    fn timeline_uses_dependency_stages_for_the_active_board() {
         let mut store = Store::open_in_memory().unwrap();
         let backlog = store.ensure_default_board().unwrap();
         let first = store
@@ -389,5 +372,34 @@ mod tests {
         assert_eq!(items[0].stage, Some(0));
         assert_eq!(items[1].item.card.key, second.key);
         assert_eq!(items[1].stage, Some(1));
+    }
+
+    #[test]
+    fn dashboard_views_exclude_cards_from_other_boards() {
+        let mut store = Store::open_in_memory().unwrap();
+        let backlog = store.ensure_default_board().unwrap();
+        let current = store
+            .create_card(&backlog.id, None, "current", "", "test")
+            .unwrap();
+        let other = store
+            .create_board("Other", BoardColumnTemplate::Workflow)
+            .unwrap();
+        store
+            .create_card(&other.id, None, "other", "", "test")
+            .unwrap();
+
+        let app = App::new(store, backlog).unwrap();
+        let list = app.execution_dashboard_items().unwrap();
+        let (timeline, _) = app.execution_timeline_items().unwrap();
+        let flow = app
+            .execution_items_for_group(DashboardGroup::Missing)
+            .unwrap();
+
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].card.key, current.key);
+        assert_eq!(timeline.len(), 1);
+        assert_eq!(timeline[0].item.card.key, current.key);
+        assert_eq!(flow.len(), 1);
+        assert_eq!(flow[0].card.key, current.key);
     }
 }

@@ -13,21 +13,6 @@ impl App {
         self.reload()
     }
 
-    pub(crate) fn cycle_board(&mut self) -> Result<()> {
-        if self.boards.len() <= 1 {
-            return Ok(());
-        }
-        let i = self
-            .boards
-            .iter()
-            .position(|b| b.id == self.board.id)
-            .unwrap_or(0);
-        let next = self.boards[(i + 1) % self.boards.len()].clone();
-        self.switch_board(next)?;
-        self.status = format!("board: {}", self.board.name);
-        Ok(())
-    }
-
     /// Reload columns after a structural change, keeping cursors in range.
     pub(crate) fn refresh_columns(&mut self) -> Result<()> {
         self.columns = self.store.columns(&self.board.id)?;

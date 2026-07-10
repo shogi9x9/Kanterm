@@ -1,5 +1,5 @@
 use super::App;
-use crate::mode::Mode;
+use crate::mode::{ExecutionDashboardState, Mode};
 use crate::theme::theme;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::widgets::Paragraph;
@@ -14,20 +14,18 @@ impl App {
         ])
         .areas(f.area());
 
-        if let Mode::ExecutionDashboard {
-            view,
-            cursor,
-            focus,
-        } = &self.mode
+        if let Mode::ExecutionDashboard(state) = &self.mode {
+            self.draw_execution_layer(f, status_area, *state);
+            return;
+        }
+
+        // A detail opened from LIST, TIMELINE, or FLOW is an overlay on that
+        // execution view, not a navigation back to the Kanban board.
+        if let (Mode::Detail { key, scroll }, Some(state)) =
+            (&self.mode, self.detail_return_dashboard)
         {
-            let dashboard_area = Rect::new(
-                f.area().x,
-                f.area().y,
-                f.area().width,
-                f.area().height.saturating_sub(status_area.height),
-            );
-            self.draw_execution_dashboard(f, dashboard_area, *view, *cursor, *focus);
-            self.draw_status(f, status_area);
+            self.draw_execution_layer(f, status_area, state);
+            self.draw_detail(f, key, *scroll);
             return;
         }
 
@@ -55,7 +53,7 @@ impl App {
             Mode::Detail { key, scroll } => self.draw_detail(f, key, *scroll),
             Mode::AgentMetadata { key, scroll } => self.draw_agent_metadata(f, key, *scroll),
             Mode::DependencyGraph { scroll } => self.draw_dependency_graph(f, *scroll),
-            Mode::ExecutionDashboard { .. } => {}
+            Mode::ExecutionDashboard(_) => {}
             Mode::BodyEdit { key, editor, .. } => self.draw_body_edit(f, key, editor),
             Mode::Input { kind, buffer } => self.draw_input_popup(f, kind.label(), buffer),
             Mode::LabelPicker {
@@ -96,5 +94,21 @@ impl App {
             Mode::ArchiveConfirm { key, .. } => self.draw_archive_confirm(f, key),
             Mode::Normal => {}
         }
+    }
+
+    fn draw_execution_layer(
+        &self,
+        f: &mut Frame,
+        status_area: Rect,
+        state: ExecutionDashboardState,
+    ) {
+        let dashboard_area = Rect::new(
+            f.area().x,
+            f.area().y,
+            f.area().width,
+            f.area().height.saturating_sub(status_area.height),
+        );
+        self.draw_execution_dashboard(f, dashboard_area, state.view, state.cursor, state.focus);
+        self.draw_status(f, status_area);
     }
 }

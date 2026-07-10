@@ -99,16 +99,16 @@ impl App {
                 " DEPENDENCY GRAPH  j/k scroll  g/Esc back ",
                 Style::default().fg(theme().hint),
             )),
-            Mode::ExecutionDashboard { view, .. } => {
-                let help = match view {
+            Mode::ExecutionDashboard(state) => {
+                let help = match state.view {
                     crate::mode::ExecutionDashboardView::List => {
-                        " EXECUTION LIST  Tab/1-3 views  j/k move  Enter card  W/Esc board "
+                        " EXECUTION LIST  Tab/1-4 tabs  j/k move  Enter card  1 Kanban  Esc exit "
                     }
                     crate::mode::ExecutionDashboardView::Timeline => {
-                        " EXECUTION TIMELINE  Tab/1-3 views  h/l stages  j/k move  Enter card  W/Esc board "
+                        " EXECUTION TIMELINE  Tab/1-4 tabs  h/l stages  j/k move  Enter card  1 Kanban  Esc exit "
                     }
                     crate::mode::ExecutionDashboardView::Flow => {
-                        " EXECUTION FLOW  Tab/1-3 views  h/l state  j/k cards  Enter card  W/Esc board "
+                        " EXECUTION FLOW  Tab/1-4 tabs  h/l state  j/k cards  Enter card  1 Kanban  Esc exit "
                     }
                 };
                 Line::from(Span::styled(help, Style::default().fg(theme().hint)))
@@ -124,7 +124,7 @@ impl App {
                         ("J/K", "order"),
                         ("n", "new"),
                         ("M", "send"),
-                        ("W", "exec"),
+                        ("Tab", "tabs"),
                         ("↵", "open"),
                         ("/", "find"),
                         ("b", "boards"),
@@ -136,7 +136,7 @@ impl App {
                         ("j/k", "cards"),
                         ("H/L", "move"),
                         ("n", "new"),
-                        ("W", "exec"),
+                        ("Tab", "tabs"),
                         ("↵", "open"),
                         ("/", "find"),
                         ("b", "boards"),

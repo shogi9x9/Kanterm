@@ -34,6 +34,23 @@ impl ExecutionDashboardView {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct ExecutionDashboardState {
+    pub(crate) view: ExecutionDashboardView,
+    pub(crate) cursor: usize,
+    pub(crate) focus: usize,
+}
+
+impl ExecutionDashboardState {
+    pub(crate) const fn new(view: ExecutionDashboardView, cursor: usize, focus: usize) -> Self {
+        Self {
+            view,
+            cursor,
+            focus,
+        }
+    }
+}
+
 pub(crate) enum Mode {
     Normal,
     Detail {
@@ -47,12 +64,8 @@ pub(crate) enum Mode {
     DependencyGraph {
         scroll: u16,
     },
-    /// Cross-board view of executable, running, human-gated and blocked work.
-    ExecutionDashboard {
-        view: ExecutionDashboardView,
-        cursor: usize,
-        focus: usize,
-    },
+    /// Board-scoped views of executable, running, human-gated and blocked work.
+    ExecutionDashboard(ExecutionDashboardState),
     Input {
         kind: InputKind,
         buffer: String,
