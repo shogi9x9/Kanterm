@@ -82,10 +82,19 @@ first, and the Backlog board can do neither.
 
 ## Themes
 
-The TUI ships with built-in `dark` and `light` themes:
+The TUI uses `glass` by default and also ships with `dark` and `light` themes:
 
 ```sh
 KANBAN_THEME=light ./target/release/kanterm
+```
+
+`glass` leaves selections on the terminal's default background, uses a subtle
+selection marker, and adds breathing room between columns. Pair it with your
+terminal emulator's background opacity setting for a translucent appearance.
+It can also be selected explicitly:
+
+```sh
+KANBAN_THEME=glass ./target/release/kanterm
 ```
 
 Override key colors with a JSON file and `KANBAN_THEME_FILE`:
@@ -102,8 +111,9 @@ Override key colors with a JSON file and `KANBAN_THEME_FILE`:
 }
 ```
 
-Supported values are ANSI color names such as `red`, `light_cyan`, `dark_gray`
-or hex colors like `#ff5555`.
+Supported values are ANSI color names such as `red`, `light_cyan`, `dark_gray`,
+the terminal background aliases `reset` / `default`, or hex colors like
+`#ff5555`.
 
 ## Memory log
 

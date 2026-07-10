@@ -1,5 +1,6 @@
 use super::App;
 use crate::mode::Mode;
+use crate::theme::theme;
 use ratatui::layout::{Constraint, Layout};
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
@@ -23,7 +24,9 @@ impl App {
                 .iter()
                 .map(|_| Constraint::Ratio(1, self.columns.len() as u32))
                 .collect();
-            let cols = Layout::horizontal(constraints).split(board_area);
+            let cols = Layout::horizontal(constraints)
+                .spacing(theme().column_spacing)
+                .split(board_area);
             for (i, area) in cols.iter().enumerate() {
                 self.draw_column(f, i, *area);
             }

@@ -82,10 +82,18 @@ Backlog ボードはどちらもできません。
 
 ## テーマ
 
-組み込みの `dark` / `light` テーマがあります:
+既定の `glass` に加えて、組み込みの `dark` / `light` テーマがあります:
 
 ```sh
 KANBAN_THEME=light ./target/release/kanterm
+```
+
+`glass` は選択部分に端末のデフォルト背景を使い、控えめな選択マーカーと列間の余白を
+追加します。端末エミュレータ側の背景透過設定と組み合わせると、透明感のある表示に
+できます。明示的に指定する場合:
+
+```sh
+KANBAN_THEME=glass ./target/release/kanterm
 ```
 
 JSON ファイルと `KANBAN_THEME_FILE` で主要色を上書きできます:
@@ -102,8 +110,8 @@ JSON ファイルと `KANBAN_THEME_FILE` で主要色を上書きできます:
 }
 ```
 
-指定できる値は `red`・`light_cyan`・`dark_gray` のような ANSI カラー名か、
-`#ff5555` のような hex カラーです。
+指定できる値は `red`・`light_cyan`・`dark_gray` のような ANSI カラー名、端末の
+デフォルト背景に戻す `reset` / `default`、または `#ff5555` のような hex カラーです。
 
 ## memory log
 

@@ -1,6 +1,6 @@
 use super::App;
 use crate::layout::centered_box;
-use crate::theme::theme;
+use crate::theme::{selection_style, theme};
 use kanterm_core::BoardColumnTemplate;
 use ratatui::layout::{Constraint, Layout, Position};
 use ratatui::style::{Modifier, Style};
@@ -78,12 +78,10 @@ impl App {
                 ]))
             })
             .collect();
-        let list = List::new(items).block(block).highlight_style(
-            Style::default()
-                .bg(theme().selected_bg)
-                .fg(theme().selected_fg)
-                .add_modifier(Modifier::BOLD),
-        );
+        let list = List::new(items)
+            .block(block)
+            .highlight_style(selection_style())
+            .highlight_symbol(theme().selection_symbol);
         let mut state = ListState::default();
         if !self.boards.is_empty() {
             state.select(Some(cursor.min(self.boards.len() - 1)));
@@ -144,12 +142,9 @@ impl App {
                 ]))
             })
             .collect();
-        let list = List::new(items).highlight_style(
-            Style::default()
-                .bg(theme().selected_bg)
-                .fg(theme().selected_fg)
-                .add_modifier(Modifier::BOLD),
-        );
+        let list = List::new(items)
+            .highlight_style(selection_style())
+            .highlight_symbol(theme().selection_symbol);
         let mut state = ListState::default();
         state.select(Some(cursor.min(templates.len().saturating_sub(1))));
         f.render_stateful_widget(list, list_area, &mut state);
@@ -176,12 +171,15 @@ impl App {
             .iter()
             .map(|b| ListItem::new(Line::from(format!("{} ({})", b.name, b.slug))))
             .collect();
-        let list = List::new(items).block(block).highlight_style(
-            Style::default()
-                .bg(theme().warning)
-                .fg(theme().selected_fg)
-                .add_modifier(Modifier::BOLD),
-        );
+        let list = List::new(items)
+            .block(block)
+            .highlight_style(
+                Style::default()
+                    .bg(theme().warning)
+                    .fg(theme().contrast_fg)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .highlight_symbol(theme().selection_symbol);
         let mut state = ListState::default();
         if !archived.is_empty() {
             state.select(Some(cursor.min(archived.len() - 1)));

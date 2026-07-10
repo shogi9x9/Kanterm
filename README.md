@@ -30,7 +30,8 @@ and see each other's writes live.
 - **Multiple boards + memory log** — `workflow` / `planning` / `simple` column
   templates, cross-board moves, archive & restore, and a durable
   decisions/learnings log that survives across sessions.
-- **Themeable** — built-in `dark` / `light` themes plus JSON color overrides.
+- **Themeable** — default `glass` theme, built-in `dark` / `light` alternatives,
+  and JSON color overrides.
 
 ## Install
 

@@ -272,8 +272,9 @@ UI-state restore.
 
 ## v11 (shipped)
 
-- **TUI themes**: built-in `dark` / `light` themes are selected with
-  `KANBAN_THEME`, and `KANBAN_THEME_FILE` can override key colors with JSON.
+- **TUI themes**: `glass` is the default; built-in `dark` / `light` alternatives
+  are selected with `KANBAN_THEME`, and `KANBAN_THEME_FILE` can override key
+  colors with JSON.
   Priority remains badge-first (`[H]`, `[M]`, `[L]`) so colour is useful but not
   required for understanding.
 
