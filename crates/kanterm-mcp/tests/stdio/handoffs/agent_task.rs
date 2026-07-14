@@ -32,7 +32,7 @@ fn run_agent_task_completes_card_and_triggers_next_handoff() {
         json!({"requested_name": "c", "lease_minutes": 30}),
     );
     let c_identity = response_field(&c_agent, "assigned_identity:").to_string();
-    s.call(
+    let sent = s.call(
         6,
         "send_handoff",
         json!({
@@ -42,6 +42,7 @@ fn run_agent_task_completes_card_and_triggers_next_handoff() {
             "body": "Say hi to B and continue to C."
         }),
     );
+    let handoff_id = response_field(&sent, "handoff_sent:").to_string();
 
     let targets_path = temp_path("kanterm-runner-targets", ".yaml");
     let workflow_path = temp_path("kanterm-runner-workflow", ".yaml");
@@ -128,4 +129,7 @@ steps:
     let card = s.call(9, "get_card", json!({"board": "chain", "key": card_key}));
     assert!(card.contains("state: done"), "got: {card}");
     assert!(card.contains("HI_A_TO_B"), "got: {card}");
+    let handoff = s.call(10, "get_handoff", json!({"id": handoff_id}));
+    assert!(handoff.contains("status: completed"), "got: {handoff}");
+    assert!(handoff.contains("result:\nHI_A_TO_B"), "got: {handoff}");
 }

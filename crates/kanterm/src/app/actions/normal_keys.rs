@@ -2,7 +2,7 @@ use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::app::App;
-use crate::mode::{ArchiveBack, ExecutionDashboardView, InputKind, Mode};
+use crate::mode::{CardActionBack, ExecutionDashboardView, InputKind, Mode, ViewBack};
 use kanterm_core::PROTECTED_BOARD_SLUG;
 
 impl App {
@@ -37,14 +37,17 @@ impl App {
                 };
             }
             KeyCode::Tab => self.open_execution_dashboard(ExecutionDashboardView::List),
-            KeyCode::BackTab => self.open_execution_dashboard(ExecutionDashboardView::Flow),
+            KeyCode::BackTab => self.open_execution_dashboard(ExecutionDashboardView::Timeline),
             KeyCode::Char('b') => {
                 let cursor = self
                     .boards
                     .iter()
                     .position(|b| b.id == self.board.id)
                     .unwrap_or(0);
-                self.mode = Mode::BoardSwitcher { cursor };
+                self.mode = Mode::BoardSwitcher {
+                    cursor,
+                    back: ViewBack::Normal,
+                };
             }
             KeyCode::Char('i') => {
                 self.mode = Mode::Input {
@@ -77,7 +80,10 @@ impl App {
             KeyCode::Char('u') => self.undo_last_card_update()?,
             KeyCode::Char('M') => {
                 if let Some(card) = self.selected_card() {
-                    self.open_card_board_move(card.key.clone(), ArchiveBack::Normal);
+                    self.open_card_board_move(
+                        card.key.clone(),
+                        CardActionBack::View(ViewBack::Normal),
+                    );
                 }
             }
             KeyCode::Char('d') => self.prompt_archive_selected(),
@@ -88,6 +94,7 @@ impl App {
                     self.mode = Mode::BoardArchive {
                         board_id: self.board.id.clone(),
                         board_name: self.board.name.clone(),
+                        back: ViewBack::Normal,
                     };
                 }
             }

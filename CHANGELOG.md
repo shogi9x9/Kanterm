@@ -9,7 +9,14 @@ once public releases begin.
 
 ## Unreleased
 
-- No changes yet.
+- Remove the FLOW execution tab and keep Kanban, LIST, and TIMELINE navigation
+  on `Tab` / `Shift+Tab` and `1` / `2` / `3`.
+- Support `b` board switching from LIST and TIMELINE while returning to the
+  originating execution view.
+- Archive the selected card with `d` or active board with `D` directly from
+  LIST and TIMELINE, keeping confirmation dialogs over the originating view.
+- Persist successful handoff results, expose `get_handoff`, add sender/status
+  list filters, and teach MCP clients the complete result-retrieval protocol.
 
 ## 0.2.0 - 2026-07-10
 

@@ -19,7 +19,19 @@ impl App {
             return;
         }
 
-        // A detail opened from LIST, TIMELINE, or FLOW is an overlay on that
+        // Keep the originating execution view visible under dashboard dialogs.
+        if let Some(state) = self.mode.dashboard_background() {
+            self.draw_execution_layer(f, status_area, state);
+            match &self.mode {
+                Mode::BoardSwitcher { cursor, .. } => self.draw_board_switcher(f, *cursor),
+                Mode::BoardArchive { board_name, .. } => self.draw_board_archive(f, board_name),
+                Mode::ArchiveConfirm { key, .. } => self.draw_archive_confirm(f, key),
+                _ => {}
+            }
+            return;
+        }
+
+        // A detail opened from LIST or TIMELINE is an overlay on that
         // execution view, not a navigation back to the Kanban board.
         if let (Mode::Detail { key, scroll }, Some(state)) =
             (&self.mode, self.detail_return_dashboard)
@@ -72,8 +84,9 @@ impl App {
             Mode::BoardArchive {
                 board_id: _,
                 board_name,
+                ..
             } => self.draw_board_archive(f, board_name),
-            Mode::BoardSwitcher { cursor } => self.draw_board_switcher(f, *cursor),
+            Mode::BoardSwitcher { cursor, .. } => self.draw_board_switcher(f, *cursor),
             Mode::BoardTemplatePicker { name, cursor } => {
                 self.draw_board_template_picker(f, name, *cursor)
             }

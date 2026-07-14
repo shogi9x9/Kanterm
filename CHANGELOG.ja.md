@@ -6,7 +6,13 @@
 
 ## Unreleased
 
-- 現在、未リリースの変更はありません。
+- FLOW実行タブを削除し、Kanban、LIST、TIMELINEを`Tab` / `Shift+Tab`および
+  `1` / `2` / `3`で切り替える構成に変更。
+- LISTとTIMELINEから`b`でボードを切り替え、元の実行viewへ戻れるように変更。
+- LISTとTIMELINEから`d`で選択カード、`D`で現在のボードをarchiveでき、確認dialogを
+  元の実行view上に維持するように変更。
+- 成功したhandoff結果を永続化し、`get_handoff`とsender/status一覧filterを追加。
+  MCP clientへ結果取得までのprotocolも注入。
 
 ## 0.2.0 - 2026-07-10
 

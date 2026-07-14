@@ -26,7 +26,6 @@ impl App {
             ExecutionDashboardView::Timeline => {
                 self.draw_execution_timeline(f, inner, cursor, focus)
             }
-            ExecutionDashboardView::Flow => self.draw_execution_flow(f, inner, cursor, focus),
         }
     }
 
@@ -97,7 +96,6 @@ fn dashboard_block(view: ExecutionDashboardView) -> Block<'static> {
     for candidate in [
         ExecutionDashboardView::List,
         ExecutionDashboardView::Timeline,
-        ExecutionDashboardView::Flow,
     ] {
         let style = if candidate == view {
             selection_style()

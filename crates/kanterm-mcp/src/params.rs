@@ -11,6 +11,7 @@ pub(crate) use cards::{
     DependencyGraphParams, KeyParams, ListParams, UpdateParams,
 };
 pub(crate) use handoffs::{
-    ClaimHandoffParams, CompleteHandoffParams, ListHandoffsParams, SendHandoffParams,
+    ClaimHandoffParams, CompleteHandoffParams, GetHandoffParams, ListHandoffsParams,
+    SendHandoffParams,
 };
 pub(crate) use memories::{RecallMemoriesParams, RecordMemoryParams};

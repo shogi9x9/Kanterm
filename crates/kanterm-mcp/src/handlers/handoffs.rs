@@ -1,10 +1,11 @@
-use kanterm_core::{AgentHandoff, HandoffDraft, HandoffStatusPatch, Store};
+use kanterm_core::{AgentHandoff, HandoffDraft, HandoffListQuery, HandoffStatusPatch, Store};
 use rmcp::ErrorData;
 
 use crate::error::internal;
 use crate::lookup::resolve_board;
 use crate::params::{
-    ClaimHandoffParams, CompleteHandoffParams, ListHandoffsParams, SendHandoffParams,
+    ClaimHandoffParams, CompleteHandoffParams, GetHandoffParams, ListHandoffsParams,
+    SendHandoffParams,
 };
 
 pub(crate) fn send_handoff(
@@ -35,11 +36,14 @@ pub(crate) fn send_handoff(
 
 pub(crate) fn list_handoffs(store: &Store, p: ListHandoffsParams) -> Result<String, ErrorData> {
     let handoffs = store
-        .list_handoffs(
-            p.for_agent.as_deref(),
-            p.include_closed.unwrap_or(false),
-            p.limit.unwrap_or(20),
-        )
+        .list_handoffs(HandoffListQuery {
+            recipient: p.for_agent.as_deref(),
+            sender: p.from_agent.as_deref(),
+            status: p.status.as_deref(),
+            include_closed: p.include_closed.unwrap_or(false),
+            claimable_only: false,
+            limit: p.limit.unwrap_or(20),
+        })
         .map_err(internal)?;
     if handoffs.is_empty() {
         return Ok("no handoffs".into());
@@ -49,6 +53,14 @@ pub(crate) fn list_handoffs(store: &Store, p: ListHandoffsParams) -> Result<Stri
         .map(render_handoff_line)
         .collect::<Vec<_>>()
         .join("\n"))
+}
+
+pub(crate) fn get_handoff(store: &Store, p: GetHandoffParams) -> Result<String, ErrorData> {
+    let handoff = store
+        .handoff_by_id(&p.id)
+        .map_err(internal)?
+        .ok_or_else(|| ErrorData::invalid_params(format!("no handoff '{}'", p.id), None))?;
+    Ok(render_handoff_detail(&handoff))
 }
 
 pub(crate) fn claim_handoff(store: &mut Store, p: ClaimHandoffParams) -> Result<String, ErrorData> {
@@ -106,4 +118,37 @@ fn render_handoff_line(h: &AgentHandoff) -> String {
         "{} [{}] from:{} to:{}{}{} {}",
         h.id, h.status, h.from_agent, h.to_agent, card, claim, h.subject
     )
+}
+
+fn render_handoff_detail(h: &AgentHandoff) -> String {
+    let mut lines = vec![
+        format!("handoff: {}", h.id),
+        format!("status: {}", h.status),
+        format!("from_agent: {}", h.from_agent),
+        format!("to_agent: {}", h.to_agent),
+        format!("subject: {}", h.subject),
+    ];
+    if let Some(card) = &h.card_key {
+        lines.push(format!("card: {card}"));
+    }
+    if let Some(claimed_by) = &h.claimed_by {
+        lines.push(format!("claimed_by: {claimed_by}"));
+    }
+    if let Some(completed_at) = h.completed_at {
+        lines.push(format!("completed_at: {completed_at}"));
+    }
+    if let Some(failed_at) = h.failed_at {
+        lines.push(format!("failed_at: {failed_at}"));
+    }
+    lines.push("body:".into());
+    lines.push(h.body.clone());
+    if let Some(result) = &h.result_text {
+        lines.push("result:".into());
+        lines.push(result.clone());
+    }
+    if let Some(error) = &h.last_error {
+        lines.push("error:".into());
+        lines.push(error.clone());
+    }
+    lines.join("\n")
 }

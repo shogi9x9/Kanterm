@@ -138,6 +138,7 @@ pub struct AgentHandoff {
     pub lease_expires_at: Option<i64>,
     pub completed_at: Option<i64>,
     pub failed_at: Option<i64>,
+    pub result_text: Option<String>,
     pub last_error: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
@@ -151,6 +152,30 @@ pub struct HandoffDraft {
     pub card_key: Option<String>,
     pub subject: String,
     pub body: String,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct HandoffListQuery<'a> {
+    pub recipient: Option<&'a str>,
+    pub sender: Option<&'a str>,
+    pub status: Option<&'a str>,
+    pub include_closed: bool,
+    /// Restrict to pending or expired-claim work that can be safely executed.
+    pub claimable_only: bool,
+    pub limit: i64,
+}
+
+impl Default for HandoffListQuery<'_> {
+    fn default() -> Self {
+        Self {
+            recipient: None,
+            sender: None,
+            status: None,
+            include_closed: false,
+            claimable_only: false,
+            limit: 20,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

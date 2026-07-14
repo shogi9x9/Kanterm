@@ -14,7 +14,6 @@ mod render_dependency_graph;
 mod render_detail;
 mod render_dialogs;
 mod render_execution_dashboard;
-mod render_execution_flow;
 mod render_execution_timeline;
 mod render_memory_dialogs;
 mod render_popups;

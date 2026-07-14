@@ -94,7 +94,7 @@ impl WatchArgs {
             ));
         }
         let bridge = match (bridge_program, target_name) {
-            (Some(program), None) => Some(Delivery::Command(BridgeCommand {
+            (Some(program), None) => Some(Delivery::Bridge(BridgeCommand {
                 program,
                 args: bridge_args,
                 cwd: None,

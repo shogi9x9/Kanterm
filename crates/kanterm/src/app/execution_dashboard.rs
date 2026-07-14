@@ -47,15 +47,6 @@ impl DashboardGroup {
     }
 }
 
-pub(crate) const FLOW_GROUPS: [DashboardGroup; 6] = [
-    DashboardGroup::Missing,
-    DashboardGroup::Waiting,
-    DashboardGroup::Blocked,
-    DashboardGroup::Human,
-    DashboardGroup::Ready,
-    DashboardGroup::Running,
-];
-
 impl From<WorkState> for DashboardGroup {
     fn from(state: WorkState) -> Self {
         match state {
@@ -234,6 +225,7 @@ impl App {
         Ok((timeline, max_stages))
     }
 
+    #[cfg(test)]
     pub(crate) fn execution_items_for_group(
         &self,
         group: DashboardGroup,

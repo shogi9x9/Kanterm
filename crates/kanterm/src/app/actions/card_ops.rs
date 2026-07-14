@@ -2,7 +2,7 @@ use anyhow::Result;
 use kanterm_core::{priority_badge, CardPatch, PRIORITY_HIGH, PRIORITY_LOW, PRIORITY_NORMAL};
 
 use crate::app::{App, ACTOR};
-use crate::mode::{ArchiveBack, Mode};
+use crate::mode::{CardActionBack, Mode, ViewBack};
 
 impl App {
     pub(crate) fn focus_delta(&mut self, delta: i32) {
@@ -102,23 +102,13 @@ impl App {
     pub(crate) fn prompt_archive_selected(&mut self) {
         if let Some(c) = self.selected_card() {
             let key = c.key.clone();
-            self.prompt_archive_key(key, ArchiveBack::Normal);
+            self.prompt_archive_key(key, CardActionBack::View(ViewBack::Normal));
         }
     }
 
-    pub(crate) fn prompt_archive_key(&mut self, key: String, back: ArchiveBack) {
+    pub(crate) fn prompt_archive_key(&mut self, key: String, back: CardActionBack) {
         self.mode = Mode::ArchiveConfirm { key, back };
         self.status = "archive? y/n".into();
-    }
-
-    pub(crate) fn archive_back_mode(&self, key: &str, back: ArchiveBack) -> Mode {
-        match back {
-            ArchiveBack::Detail if self.card_by_key(key).is_some() => Mode::Detail {
-                key: key.to_string(),
-                scroll: 0,
-            },
-            _ => Mode::Normal,
-        }
     }
 
     pub(crate) fn archive_key(&mut self, key: &str) -> Result<()> {

@@ -6,6 +6,7 @@ fn rollback_cards_to_schema_15_and_set_user_version(path: &std::path::Path, vers
     let conn = Connection::open(path).unwrap();
     conn.execute_batch(
         "PRAGMA foreign_keys = OFF;
+         DROP TABLE IF EXISTS agent_handoffs;
          DROP TABLE IF EXISTS boards_rollback;
          CREATE TABLE boards_rollback (
              id          TEXT PRIMARY KEY,

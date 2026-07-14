@@ -24,12 +24,25 @@ pub(crate) struct ListHandoffsParams {
     /// Recipient identity to read. When omitted, returns all open handoffs.
     #[serde(default)]
     pub(crate) for_agent: Option<String>,
+    /// Filter by the sender identity/name.
+    #[serde(default)]
+    pub(crate) from_agent: Option<String>,
+    /// Filter by pending, claimed, completed, or failed. An explicit terminal
+    /// status includes closed handoffs even when include_closed is omitted.
+    #[serde(default)]
+    pub(crate) status: Option<String>,
     /// Include completed and failed handoffs.
     #[serde(default)]
     pub(crate) include_closed: Option<bool>,
     /// Maximum rows, clamped to 1..100.
     #[serde(default)]
     pub(crate) limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub(crate) struct GetHandoffParams {
+    /// Handoff id returned by send_handoff or list_handoffs.
+    pub(crate) id: String,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]

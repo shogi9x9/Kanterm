@@ -26,7 +26,6 @@ impl App {
             Span::styled(" KANBAN ", selection_style()),
             Span::styled(" LIST ", Style::default().fg(theme().muted)),
             Span::styled(" TIMELINE ", Style::default().fg(theme().muted)),
-            Span::styled(" FLOW ", Style::default().fg(theme().muted)),
             Span::styled("│", Style::default().fg(theme().muted)),
             Span::styled(" board ", Style::default().fg(theme().muted)),
             Span::styled("< ", Style::default().fg(theme().help)),

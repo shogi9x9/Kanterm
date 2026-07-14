@@ -8,6 +8,8 @@ mod columns;
 mod detail_keys;
 mod edit_keys;
 mod execution_dashboard;
+#[cfg(test)]
+mod execution_dashboard_tests;
 mod key_input;
 mod labels;
 mod memory;

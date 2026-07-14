@@ -87,7 +87,9 @@ decision.
 `h`/`l` move between columns, `j`/`k` within a column, `H`/`L` move a card across
 columns, `Enter` opens a card, `n` adds one, `b` switches boards, and `q` quits.
 Kanterm starts in the execution dashboard. `Tab` / `Shift+Tab` cycle the Kanban,
-LIST, TIMELINE, and FLOW tabs; `1` / `2` / `3` / `4` select them directly.
+LIST, and TIMELINE tabs; `1` / `2` / `3` select them directly. Board switching
+with `b` is available from all three tabs. In LIST and TIMELINE, `d` archives
+the selected card and `D` archives the active board without leaving the view.
 In an execution tab, `Enter` opens card detail over the current tab and `Esc`
 exits Kanterm; `Esc` inside card detail closes only the modal.
 The board remembers your focused column, selected card, and active board between
@@ -107,6 +109,8 @@ key (e.g. `KB-12`); tools cover reading (`get_board`, `list_cards`, `get_card`),
 writing (`create_card`, `create_cards`, `update_card`), structure
 (`manage_columns`, `manage_boards`), coordination, durable handoffs, and a
 memory log.
+Handoff senders can retrieve completed output with `get_handoff`; list filters
+also support sent and closed handoffs.
 `kanterm-mcp watch-handoffs` can run as a lightweight watcher/bridge for
 delivering durable handoffs into another runtime, and `kanterm-mcp run-workflow`
 can turn a small workflow YAML step completion into a cross-repo handoff.

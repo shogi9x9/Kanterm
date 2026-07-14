@@ -5,10 +5,10 @@ mod guard;
 pub(crate) use args::{usage, WatchArgs};
 
 use anyhow::Result;
-use kanterm_core::{HandoffStatusPatch, Store};
+use kanterm_core::{HandoffListQuery, HandoffStatusPatch, Store};
 use std::time::Duration;
 
-use self::delivery::deliver;
+use self::delivery::{deliver, DeliveryOutcome};
 use self::guard::WatchGuard;
 
 pub(crate) fn run(store: &mut Store, args: WatchArgs) -> Result<()> {
@@ -34,7 +34,12 @@ pub(crate) fn run(store: &mut Store, args: WatchArgs) -> Result<()> {
 }
 
 fn scan_once(store: &mut Store, args: &WatchArgs) -> Result<usize> {
-    let handoffs = store.list_handoffs(Some(&args.for_agent), false, 100)?;
+    let handoffs = store.list_handoffs(HandoffListQuery {
+        recipient: Some(&args.for_agent),
+        claimable_only: true,
+        limit: 100,
+        ..Default::default()
+    })?;
     let mut delivered = 0;
     for handoff in handoffs {
         let claimed = match store.claim_handoff(
@@ -47,18 +52,19 @@ fn scan_once(store: &mut Store, args: &WatchArgs) -> Result<usize> {
             Err(_) => continue,
         };
         match deliver(&claimed, args.bridge.as_ref()) {
-            Ok(()) => {
+            Ok(DeliveryOutcome::Completed(result)) => {
                 store.update_handoff_status(
                     &claimed.id,
                     &args.for_agent,
                     Some(&args.claim_token),
                     &HandoffStatusPatch {
                         status: "completed".into(),
-                        note: Some("delivered by watch-handoffs".into()),
+                        note: Some(result),
                     },
                 )?;
                 delivered += 1;
             }
+            Ok(DeliveryOutcome::Delivered) => delivered += 1,
             Err(err) => {
                 store.update_handoff_status(
                     &claimed.id,

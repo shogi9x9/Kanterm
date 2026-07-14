@@ -5,23 +5,20 @@ use kanterm_core::Label;
 pub(crate) enum ExecutionDashboardView {
     List,
     Timeline,
-    Flow,
 }
 
 impl ExecutionDashboardView {
     pub(crate) fn next(self) -> Self {
         match self {
             Self::List => Self::Timeline,
-            Self::Timeline => Self::Flow,
-            Self::Flow => Self::List,
+            Self::Timeline => Self::List,
         }
     }
 
     pub(crate) fn previous(self) -> Self {
         match self {
-            Self::List => Self::Flow,
+            Self::List => Self::Timeline,
             Self::Timeline => Self::List,
-            Self::Flow => Self::Timeline,
         }
     }
 
@@ -29,7 +26,6 @@ impl ExecutionDashboardView {
         match self {
             Self::List => "LIST",
             Self::Timeline => "TIMELINE",
-            Self::Flow => "FLOW",
         }
     }
 }
@@ -94,10 +90,12 @@ pub(crate) enum Mode {
     BoardArchive {
         board_id: String,
         board_name: String,
+        back: ViewBack,
     },
     /// Picker over active boards.
     BoardSwitcher {
         cursor: usize,
+        back: ViewBack,
     },
     /// Picker over built-in column templates before creating a new board.
     BoardTemplatePicker {
@@ -108,7 +106,7 @@ pub(crate) enum Mode {
     CardBoardMove {
         key: String,
         cursor: usize,
-        back: ArchiveBack,
+        back: CardActionBack,
     },
     /// Picker over destination columns after a destination board was chosen.
     CardColumnMove {
@@ -116,7 +114,7 @@ pub(crate) enum Mode {
         board_id: String,
         board_name: String,
         cursor: usize,
-        back: ArchiveBack,
+        back: CardActionBack,
     },
     /// Picker over archived boards: Enter unarchives, d hard-deletes.
     BoardUnarchive {
@@ -144,14 +142,66 @@ pub(crate) enum Mode {
     },
     ArchiveConfirm {
         key: String,
-        back: ArchiveBack,
+        back: CardActionBack,
     },
 }
 
 #[derive(Clone, Copy)]
-pub(crate) enum ArchiveBack {
-    Normal,
+pub(crate) enum CardActionBack {
+    View(ViewBack),
     Detail,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) enum ViewBack {
+    Normal,
+    ExecutionDashboard(ExecutionDashboardState),
+}
+
+impl ViewBack {
+    pub(crate) fn return_mode(self) -> Mode {
+        match self {
+            Self::Normal => Mode::Normal,
+            Self::ExecutionDashboard(state) => Mode::ExecutionDashboard(state),
+        }
+    }
+
+    fn dashboard_state(&self) -> Option<ExecutionDashboardState> {
+        match self {
+            Self::Normal => None,
+            Self::ExecutionDashboard(state) => Some(*state),
+        }
+    }
+}
+
+impl CardActionBack {
+    pub(crate) fn return_mode(self, detail_key: Option<String>) -> Mode {
+        match self {
+            Self::View(back) => back.return_mode(),
+            Self::Detail => detail_key
+                .map(|key| Mode::Detail { key, scroll: 0 })
+                .unwrap_or(Mode::Normal),
+        }
+    }
+
+    fn dashboard_state(&self) -> Option<ExecutionDashboardState> {
+        match self {
+            Self::View(back) => back.dashboard_state(),
+            Self::Detail => None,
+        }
+    }
+}
+
+impl Mode {
+    pub(crate) fn dashboard_background(&self) -> Option<ExecutionDashboardState> {
+        match self {
+            Self::BoardSwitcher { back, .. } | Self::BoardArchive { back, .. } => {
+                back.dashboard_state()
+            }
+            Self::ArchiveConfirm { back, .. } => back.dashboard_state(),
+            _ => None,
+        }
+    }
 }
 
 pub(crate) enum InputKind {
@@ -208,15 +258,11 @@ mod tests {
         );
         assert_eq!(
             ExecutionDashboardView::Timeline.next(),
-            ExecutionDashboardView::Flow
-        );
-        assert_eq!(
-            ExecutionDashboardView::Flow.next(),
             ExecutionDashboardView::List
         );
         assert_eq!(
             ExecutionDashboardView::List.previous(),
-            ExecutionDashboardView::Flow
+            ExecutionDashboardView::Timeline
         );
     }
 }

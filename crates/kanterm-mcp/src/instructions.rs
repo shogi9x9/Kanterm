@@ -27,6 +27,12 @@ such as `codex#abc123` plus a claim token; use the assigned identity as update_c
 and pass claim_token for claim/release operations. Inspect get_card agent_metadata before \
 claiming: agent_weight, agent_effort, suggested_model, expected_tokens, and human_intervention \
 describe suitability, runtime cost, and whether review/decision/execution needs a human. \
+Use send_handoff for durable agent-to-agent delegation. Address the recipient by exact assigned \
+identity or family name and keep the returned handoff id. The receiving agent calls \
+list_handoffs, claim_handoff, then complete_handoff with status=completed and note=<result>, or \
+status=failed and note=<error>. The sender calls get_handoff with the saved id to retrieve the \
+current status and result. list_handoffs can filter by for_agent, from_agent, or status; use an \
+explicit completed/failed status or include_closed=true when inspecting finished work. \
 Project-board columns can be added/renamed/reordered/deleted with manage_columns, and \
 boards created/archived/deleted with manage_boards (create defaults to the `workflow` template; archive finished boards rather than \
 deleting them). Use manage_boards action=set_context to store board/project-level agent \

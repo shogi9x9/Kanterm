@@ -53,23 +53,21 @@ classification as MCP queues:
 - **MISSING**: cards that still need execution context.
 
 Use `j` / `k` to move, `Enter` to switch to the card's board and open its detail,
-and `W` / `Esc` to return. The dashboard follows external MCP writes through the
-same live-refresh path as the board.
+and `b` to switch boards without leaving LIST or TIMELINE. The dashboard follows
+external MCP writes through the same live-refresh path as the board.
+Use `d` to archive the selected card or `D` to archive the active board; each
+confirmation stays over the originating execution view.
 
-The dashboard has three views. Press `Tab` / `Shift-Tab` to cycle or `1` / `2` /
-`3` to jump directly:
+The execution dashboard has two views alongside the Kanban tab. Press `Tab` /
+`Shift-Tab` to cycle or `1` / `2` / `3` to select Kanban, LIST, or TIMELINE:
 
 - **LIST**: ranked operational work with a dedicated **WHY / NEXT** column.
 - **TIMELINE**: a Gantt-like execution plan whose horizontal axis is dependency
   stage rather than calendar time. Parallel cards share a stage; `██` marks the
   assigned stage and `█◆` marks a card that also has a due date. Use `h` / `l`
   when more stages exist than fit on screen.
-- **FLOW**: a state-machine-style map of the derived execution states and the
-  conditions that feed work toward READY and RUNNING. Use `h` / `l` to select a
-  state and `j` / `k` to select one of its current cards.
-
-TIMELINE and FLOW are projections of existing core data. They do not add
-calendar-duration fields or duplicate transition policy in the TUI.
+TIMELINE is a projection of existing core data. It does not add calendar-duration
+fields or duplicate transition policy in the TUI.
 
 ## Detail modal
 

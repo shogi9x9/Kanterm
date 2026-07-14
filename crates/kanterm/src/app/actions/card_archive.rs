@@ -18,11 +18,12 @@ impl App {
         match key.code {
             KeyCode::Char('y') | KeyCode::Char('Y') => {
                 self.archive_key(&card_key)?;
-                self.mode = Mode::Normal;
+                self.mode = back.return_mode(None);
             }
             KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
                 self.status = "archive cancelled".into();
-                self.mode = self.archive_back_mode(&card_key, back);
+                let detail_key = self.card_by_key(&card_key).map(|_| card_key);
+                self.mode = back.return_mode(detail_key);
             }
             _ => {}
         }

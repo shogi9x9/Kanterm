@@ -18,6 +18,7 @@ fn exposes_the_expected_tools() {
             "dependency_graph",
             "get_board",
             "get_card",
+            "get_handoff",
             "list_cards",
             "list_handoffs",
             "manage_boards",

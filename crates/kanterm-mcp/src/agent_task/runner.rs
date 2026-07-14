@@ -1,5 +1,5 @@
 use anyhow::Result;
-use kanterm_core::{AgentHandoff, HandoffStatusPatch, Store};
+use kanterm_core::{AgentHandoff, HandoffListQuery, HandoffStatusPatch, Store};
 
 use super::args::AgentTaskArgs;
 use super::command::run_target_command;
@@ -14,7 +14,12 @@ pub(crate) fn run(store: &mut Store, args: AgentTaskArgs) -> Result<()> {
 
 fn run_summary(store: &mut Store, args: AgentTaskArgs) -> Result<String> {
     let Some(handoff) = store
-        .list_handoffs(Some(&args.for_agent), false, 1)?
+        .list_handoffs(HandoffListQuery {
+            recipient: Some(&args.for_agent),
+            claimable_only: true,
+            limit: 1,
+            ..Default::default()
+        })?
         .into_iter()
         .next()
     else {
@@ -27,17 +32,17 @@ fn run_summary(store: &mut Store, args: AgentTaskArgs) -> Result<String> {
         args.lease_minutes,
     )?;
     match run_claimed_task(store, &args, &claimed) {
-        Ok(summary) => {
+        Ok(completed) => {
             store.update_handoff_status(
                 &claimed.id,
                 &args.for_agent,
                 Some(&args.claim_token),
                 &HandoffStatusPatch {
                     status: "completed".into(),
-                    note: Some("completed by run-agent-task".into()),
+                    note: Some(completed.agent_output),
                 },
             )?;
-            Ok(summary)
+            Ok(completed.summary)
         }
         Err(err) => {
             let _ = store.update_handoff_status(
@@ -58,7 +63,7 @@ fn run_claimed_task(
     store: &mut Store,
     args: &AgentTaskArgs,
     handoff: &AgentHandoff,
-) -> Result<String> {
+) -> Result<ClaimedTaskResult> {
     let config = TargetConfig::load(&args.targets)?;
     let target = config.find(&args.target)?;
     let output = run_target_command(target, handoff)?;
@@ -89,5 +94,13 @@ fn run_claimed_task(
         summary.push_str("\nworkflow_triggered:\n");
         summary.push_str(&workflow_summary);
     }
-    Ok(summary)
+    Ok(ClaimedTaskResult {
+        summary,
+        agent_output: output.trim().to_string(),
+    })
+}
+
+struct ClaimedTaskResult {
+    summary: String,
+    agent_output: String,
 }

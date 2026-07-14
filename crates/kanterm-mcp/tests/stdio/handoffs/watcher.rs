@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn watch_handoffs_delivers_jsonl_and_completes() {
+fn watch_handoffs_delivers_jsonl_and_leaves_completion_to_the_receiver() {
     let db = Server::fresh_db();
     let mut s = Server::start_at(db.clone());
     let registered = s.call(
@@ -22,6 +22,7 @@ fn watch_handoffs_delivers_jsonl_and_completes() {
         }),
     );
     let handoff_id = response_field(&sent, "handoff_sent:").to_string();
+    let run_dir = temp_path("kanterm-jsonl-watcher", "");
 
     let output = Command::new(env!("CARGO_BIN_EXE_kanterm-mcp"))
         .env("KANBAN_DB", &db)
@@ -32,6 +33,8 @@ fn watch_handoffs_delivers_jsonl_and_completes() {
             "--claim-token",
             &token,
             "--once",
+            "--run-dir",
+            run_dir.to_str().unwrap(),
             "--interval-ms",
             "1",
         ])
@@ -47,6 +50,24 @@ fn watch_handoffs_delivers_jsonl_and_completes() {
     assert_eq!(payload["id"], handoff_id);
     assert_eq!(payload["body"], "handoff body for stdout");
 
-    let empty = s.call(4, "list_handoffs", json!({"for_agent": identity}));
-    assert_eq!(empty, "no handoffs");
+    let repeated = Command::new(env!("CARGO_BIN_EXE_kanterm-mcp"))
+        .env("KANBAN_DB", &db)
+        .args([
+            "watch-handoffs",
+            "--for-agent",
+            &identity,
+            "--claim-token",
+            &token,
+            "--once",
+            "--run-dir",
+            run_dir.to_str().unwrap(),
+        ])
+        .output()
+        .expect("rerun handoff watcher");
+    assert!(repeated.status.success());
+    assert!(repeated.stdout.is_empty(), "claimed work was redelivered");
+
+    let detail = s.call(4, "get_handoff", json!({"id": handoff_id}));
+    assert!(detail.contains("status: claimed"), "got: {detail}");
+    assert!(!detail.contains("result:"), "got: {detail}");
 }

@@ -1,9 +1,11 @@
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 
-use crate::app::execution_dashboard::FLOW_GROUPS;
 use crate::app::App;
-use crate::mode::{ExecutionDashboardState, ExecutionDashboardView, Mode};
+use crate::mode::{
+    CardActionBack, ExecutionDashboardState, ExecutionDashboardView, Mode, ViewBack,
+};
+use kanterm_core::PROTECTED_BOARD_SLUG;
 
 impl App {
     pub(crate) fn on_execution_dashboard_key(&mut self, key: KeyEvent) -> Result<()> {
@@ -21,7 +23,9 @@ impl App {
             KeyCode::BackTab => self.cycle_execution_tab(view, false),
             KeyCode::Char('2') => self.open_execution_dashboard(ExecutionDashboardView::List),
             KeyCode::Char('3') => self.open_execution_dashboard(ExecutionDashboardView::Timeline),
-            KeyCode::Char('4') => self.open_execution_dashboard(ExecutionDashboardView::Flow),
+            KeyCode::Char('b') => self.open_board_switcher_from_dashboard(state),
+            KeyCode::Char('d') => self.prompt_archive_from_dashboard(state)?,
+            KeyCode::Char('D') => self.prompt_board_archive_from_dashboard(state),
             KeyCode::Char('j') | KeyCode::Down => self.move_dashboard_cursor(state, true)?,
             KeyCode::Char('k') | KeyCode::Up => self.move_dashboard_cursor(state, false)?,
             KeyCode::Char('h') | KeyCode::Left => self.move_dashboard_focus(state, false)?,
@@ -39,7 +43,7 @@ impl App {
 
     fn cycle_execution_tab(&mut self, view: ExecutionDashboardView, forward: bool) {
         match (view, forward) {
-            (ExecutionDashboardView::Flow, true) | (ExecutionDashboardView::List, false) => {
+            (ExecutionDashboardView::Timeline, true) | (ExecutionDashboardView::List, false) => {
                 self.open_kanban()
             }
             (_, true) => self.open_execution_dashboard(view.next()),
@@ -80,14 +84,6 @@ impl App {
                     state.focus.saturating_sub(1)
                 };
             }
-            ExecutionDashboardView::Flow => {
-                state.focus = if forward {
-                    (state.focus + 1) % FLOW_GROUPS.len()
-                } else {
-                    (state.focus + FLOW_GROUPS.len() - 1) % FLOW_GROUPS.len()
-                };
-                state.cursor = 0;
-            }
         }
         self.mode = Mode::ExecutionDashboard(state);
         Ok(())
@@ -103,15 +99,41 @@ impl App {
     }
 
     pub(crate) fn open_execution_dashboard(&mut self, view: ExecutionDashboardView) {
-        let focus = if view == ExecutionDashboardView::Flow {
-            FLOW_GROUPS
-                .iter()
-                .position(|group| *group == crate::app::execution_dashboard::DashboardGroup::Ready)
-                .unwrap_or(0)
-        } else {
-            0
+        self.set_dashboard_position(view, 0, 0);
+    }
+
+    fn open_board_switcher_from_dashboard(&mut self, state: ExecutionDashboardState) {
+        let cursor = self
+            .boards
+            .iter()
+            .position(|board| board.id == self.board.id)
+            .unwrap_or(0);
+        self.mode = Mode::BoardSwitcher {
+            cursor,
+            back: ViewBack::ExecutionDashboard(state),
         };
-        self.set_dashboard_position(view, 0, focus);
+    }
+
+    fn prompt_archive_from_dashboard(&mut self, state: ExecutionDashboardState) -> Result<()> {
+        if let Some(key) = self.dashboard_target(state.view, state.cursor, state.focus)? {
+            self.prompt_archive_key(
+                key,
+                CardActionBack::View(ViewBack::ExecutionDashboard(state)),
+            );
+        }
+        Ok(())
+    }
+
+    fn prompt_board_archive_from_dashboard(&mut self, state: ExecutionDashboardState) {
+        if self.board.slug == PROTECTED_BOARD_SLUG {
+            self.status = "cannot archive the Backlog board".into();
+        } else {
+            self.mode = Mode::BoardArchive {
+                board_id: self.board.id.clone(),
+                board_name: self.board.name.clone(),
+                back: ViewBack::ExecutionDashboard(state),
+            };
+        }
     }
 
     fn open_kanban(&mut self) {
@@ -128,14 +150,10 @@ impl App {
         self.mode = Mode::ExecutionDashboard(ExecutionDashboardState::new(view, cursor, focus));
     }
 
-    fn dashboard_view_len(&self, view: ExecutionDashboardView, focus: usize) -> Result<usize> {
+    fn dashboard_view_len(&self, view: ExecutionDashboardView, _focus: usize) -> Result<usize> {
         match view {
             ExecutionDashboardView::List => Ok(self.execution_dashboard_items()?.len()),
             ExecutionDashboardView::Timeline => Ok(self.execution_timeline_items()?.0.len()),
-            ExecutionDashboardView::Flow => {
-                let group = FLOW_GROUPS[focus.min(FLOW_GROUPS.len() - 1)];
-                Ok(self.execution_items_for_group(group)?.len())
-            }
         }
     }
 
@@ -143,7 +161,7 @@ impl App {
         &self,
         view: ExecutionDashboardView,
         cursor: usize,
-        focus: usize,
+        _focus: usize,
     ) -> Result<Option<String>> {
         let target = match view {
             ExecutionDashboardView::List => {
@@ -158,97 +176,7 @@ impl App {
                     .get(cursor.min(items.len().saturating_sub(1)))
                     .map(|entry| entry.item.card.key.clone())
             }
-            ExecutionDashboardView::Flow => {
-                let group = FLOW_GROUPS[focus.min(FLOW_GROUPS.len() - 1)];
-                let items = self.execution_items_for_group(group)?;
-                items
-                    .get(cursor.min(items.len().saturating_sub(1)))
-                    .map(|item| item.card.key.clone())
-            }
         };
         Ok(target)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crossterm::event::KeyModifiers;
-    use kanterm_core::Store;
-
-    fn key(code: KeyCode) -> KeyEvent {
-        KeyEvent::new(code, KeyModifiers::NONE)
-    }
-
-    #[test]
-    fn tabs_cycle_between_kanban_and_execution_views() {
-        let mut store = Store::open_in_memory().unwrap();
-        let board = store.ensure_default_board().unwrap();
-        let mut app = App::new(store, board).unwrap();
-
-        app.on_execution_dashboard_key(key(KeyCode::BackTab))
-            .unwrap();
-        assert!(matches!(app.mode, Mode::Normal));
-
-        app.on_normal_key(key(KeyCode::Tab)).unwrap();
-        assert!(matches!(
-            app.mode,
-            Mode::ExecutionDashboard(ExecutionDashboardState {
-                view: ExecutionDashboardView::List,
-                ..
-            })
-        ));
-
-        app.on_execution_dashboard_key(key(KeyCode::Char('3')))
-            .unwrap();
-        assert!(matches!(
-            app.mode,
-            Mode::ExecutionDashboard(ExecutionDashboardState {
-                view: ExecutionDashboardView::Timeline,
-                ..
-            })
-        ));
-
-        app.on_execution_dashboard_key(key(KeyCode::Char('1')))
-            .unwrap();
-        assert!(matches!(app.mode, Mode::Normal));
-
-        app.open_execution_dashboard(ExecutionDashboardView::Flow);
-        app.on_execution_dashboard_key(key(KeyCode::Tab)).unwrap();
-        assert!(matches!(app.mode, Mode::Normal));
-    }
-
-    #[test]
-    fn card_detail_returns_to_the_execution_tab_that_opened_it() {
-        let mut store = Store::open_in_memory().unwrap();
-        let board = store.ensure_default_board().unwrap();
-        let card = store
-            .create_card(&board.id, None, "Inspect this card", "body", "test")
-            .unwrap();
-        let mut app = App::new(store, board).unwrap();
-
-        app.on_execution_dashboard_key(key(KeyCode::Enter)).unwrap();
-        assert!(matches!(app.mode, Mode::Detail { ref key, .. } if key == &card.key));
-
-        app.on_detail_key(key(KeyCode::Esc)).unwrap();
-        assert!(matches!(
-            app.mode,
-            Mode::ExecutionDashboard(ExecutionDashboardState {
-                view: ExecutionDashboardView::List,
-                ..
-            })
-        ));
-    }
-
-    #[test]
-    fn escape_exits_directly_from_an_execution_tab() {
-        let mut store = Store::open_in_memory().unwrap();
-        let board = store.ensure_default_board().unwrap();
-        let mut app = App::new(store, board).unwrap();
-
-        app.on_execution_dashboard_key(key(KeyCode::Esc)).unwrap();
-
-        assert!(app.should_quit);
-        assert!(matches!(app.mode, Mode::ExecutionDashboard(_)));
     }
 }

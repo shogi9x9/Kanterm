@@ -24,9 +24,9 @@ use instructions::SERVER_INSTRUCTIONS;
 use kanterm_core::Store;
 use params::{
     BoardParam, ClaimHandoffParams, CompleteHandoffParams, CreateBacklogCardParams,
-    CreateCardsParams, CreateParams, DependencyGraphParams, KeyParams, ListHandoffsParams,
-    ListParams, ManageBoardsParams, ManageColumnsParams, RecallMemoriesParams, RecordMemoryParams,
-    RegisterAgentParams, SendHandoffParams, UpdateParams,
+    CreateCardsParams, CreateParams, DependencyGraphParams, GetHandoffParams, KeyParams,
+    ListHandoffsParams, ListParams, ManageBoardsParams, ManageColumnsParams, RecallMemoriesParams,
+    RecordMemoryParams, RegisterAgentParams, SendHandoffParams, UpdateParams,
 };
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
@@ -180,7 +180,9 @@ impl Kanban {
 
     #[tool(
         description = "List durable handoffs. Pass for_agent as an assigned identity or family name \
-                       to read that inbox; omitted returns all open handoffs for watcher/debug use."
+                       to read that inbox, from_agent to inspect outbound delegation, or status to \
+                       select pending/claimed/completed/failed work. An explicit terminal status \
+                       includes closed handoffs; omitted filters return open work by default."
     )]
     fn list_handoffs(
         &self,
@@ -188,6 +190,17 @@ impl Kanban {
     ) -> Result<String, ErrorData> {
         let store = self.store();
         handlers::list_handoffs(&store, p)
+    }
+
+    #[tool(
+        description = "Get one handoff by id, including its full body, current status, successful result, or failure error. Use this after send_handoff to inspect completion."
+    )]
+    fn get_handoff(
+        &self,
+        Parameters(p): Parameters<GetHandoffParams>,
+    ) -> Result<String, ErrorData> {
+        let store = self.store();
+        handlers::get_handoff(&store, p)
     }
 
     #[tool(
@@ -204,7 +217,8 @@ impl Kanban {
 
     #[tool(
         description = "Mark a claimed handoff as completed or failed. The claimant and claim_token \
-                       must match the active claim."
+                       must match the active claim. For completed work, note is stored as the \
+                       retrievable result; for failed work, note is stored as the error."
     )]
     fn complete_handoff(
         &self,
