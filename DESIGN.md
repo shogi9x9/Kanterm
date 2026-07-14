@@ -352,6 +352,9 @@ after fan-in.
   inbox queue addressed to an exact registered identity or an agent family.
   `send_handoff`, `list_handoffs`, `claim_handoff` and `complete_handoff` expose
   the queue without overloading card workflow fields.
+- **Handoff results** (migration 0020): successful completion notes are durable
+  results, while failure notes remain errors. `get_handoff` retrieves either by
+  ID and sender/status filters make completion polling discoverable over MCP.
 - **Runtime delivery**: `watch-handoffs` claims and delivers inbox items through
   command targets or thin bridge scripts. Target YAML keeps routing reusable;
   interactive tmux/zellij target shapes are parsed but remain deferred.
@@ -362,7 +365,15 @@ after fan-in.
 - **Runtime hooks**: the Claude Code hook installer manages only Kanterm-owned
   `SessionStart`, `SessionEnd`, and `Stop` entries and preserves unrelated hooks.
 
-## v17 (shipped)
+## Unreleased dashboard revision
+
+- The active tabs are Kanban, LIST, and TIMELINE. `Tab` / `Shift+Tab` cycle them,
+  `1` / `2` / `3` select directly, and `b` uses the same board switcher in all
+  three while preserving the originating view.
+- FLOW has been removed. TIMELINE remains a read-only projection of
+  `dependency_stage_plan` and does not own execution policy.
+
+## v17 (shipped in 0.2.0, superseded by the dashboard revision above)
 
 - **Execution dashboard**: the TUI starts in a primary, active-board view.
   `Tab` / `Shift+Tab` cycle the Kanban, LIST, TIMELINE and FLOW tabs (`1` / `2`

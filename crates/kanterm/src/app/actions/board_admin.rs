@@ -3,7 +3,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 use kanterm_core::{Board, BoardColumnTemplate};
 
 use crate::app::App;
-use crate::mode::Mode;
+use crate::mode::{Mode, ViewBack};
 
 impl App {
     /// Archived boards, most recently created first kept in store order.
@@ -20,12 +20,14 @@ impl App {
         let Mode::BoardArchive {
             board_id,
             board_name,
+            back,
         } = &self.mode
         else {
             return Ok(());
         };
         let board_id = board_id.clone();
         let board_name = board_name.clone();
+        let back = *back;
         match key.code {
             KeyCode::Char('y') | KeyCode::Char('Y') => {
                 self.store.archive_board(&board_id)?;
@@ -35,11 +37,11 @@ impl App {
                 if let Some(next) = self.boards.iter().find(|b| b.id != board_id).cloned() {
                     self.switch_board(next)?;
                 }
-                self.mode = Mode::Normal;
+                self.mode = back.return_mode();
                 self.status = format!("archived board '{board_name}' (U to restore)");
             }
             KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
-                self.mode = Mode::Normal;
+                self.mode = back.return_mode();
                 self.status = "cancelled".into();
             }
             _ => {}
@@ -48,34 +50,38 @@ impl App {
     }
 
     pub(crate) fn on_board_switcher_key(&mut self, key: KeyEvent) -> Result<()> {
-        let Mode::BoardSwitcher { ref cursor } = &self.mode else {
-            return Ok(());
+        let (cursor, back) = match &self.mode {
+            Mode::BoardSwitcher { cursor, back } => (*cursor, *back),
+            _ => return Ok(()),
         };
+        let return_mode = back.return_mode();
         self.boards = self.store.list_boards()?;
         if self.boards.is_empty() {
-            self.mode = Mode::Normal;
+            self.mode = return_mode;
             self.status = "no boards".into();
             return Ok(());
         }
-        let cursor = (*cursor).min(self.boards.len() - 1);
+        let cursor = cursor.min(self.boards.len() - 1);
         match key.code {
-            KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('b') => self.mode = Mode::Normal,
+            KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('b') => self.mode = return_mode,
             KeyCode::Down | KeyCode::Char('j') => {
                 self.mode = Mode::BoardSwitcher {
                     cursor: (cursor + 1).min(self.boards.len() - 1),
+                    back,
                 };
             }
             KeyCode::Up | KeyCode::Char('k') => {
                 self.mode = Mode::BoardSwitcher {
                     cursor: cursor.saturating_sub(1),
+                    back,
                 };
             }
-            KeyCode::Char('J') => self.reorder_board_from_switcher(cursor, 1)?,
-            KeyCode::Char('K') => self.reorder_board_from_switcher(cursor, -1)?,
+            KeyCode::Char('J') => self.reorder_board_from_switcher(cursor, 1, back)?,
+            KeyCode::Char('K') => self.reorder_board_from_switcher(cursor, -1, back)?,
             KeyCode::Enter => {
                 let board = self.boards[cursor].clone();
                 self.switch_board(board.clone())?;
-                self.mode = Mode::Normal;
+                self.mode = back.return_mode();
                 self.status = format!("board: {}", board.name);
             }
             _ => {}
@@ -121,14 +127,19 @@ impl App {
         Ok(())
     }
 
-    fn reorder_board_from_switcher(&mut self, cursor: usize, dir: i32) -> Result<()> {
+    fn reorder_board_from_switcher(
+        &mut self,
+        cursor: usize,
+        dir: i32,
+        back: ViewBack,
+    ) -> Result<()> {
         let Some(board) = self.boards.get(cursor).cloned() else {
             return Ok(());
         };
         self.store.reorder_board(&board.id, dir)?;
         self.boards = self.store.list_boards()?;
         if let Some(pos) = self.boards.iter().position(|b| b.id == board.id) {
-            self.mode = Mode::BoardSwitcher { cursor: pos };
+            self.mode = Mode::BoardSwitcher { cursor: pos, back };
         }
         self.status = format!("reordered board '{}'", board.name);
         Ok(())

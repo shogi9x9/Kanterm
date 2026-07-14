@@ -42,11 +42,24 @@ fn handoff_round_trip_claims_and_completes() {
             "id": response_field(&claimed, "handoff_claimed:"),
             "claimant": response_field(&claimed, "claimed_by:"),
             "claim_token": token,
-            "status": "completed"
+            "status": "completed",
+            "note": "Delivered the finished implementation."
         }),
     );
     assert!(completed.contains("status: completed"));
 
     let empty = s.call(7, "list_handoffs", json!({"for_agent": identity}));
     assert_eq!(empty, "no handoffs");
+
+    let sent_items = s.call(
+        8,
+        "list_handoffs",
+        json!({"from_agent": "codex#sender", "status": "completed"}),
+    );
+    assert!(sent_items.contains(&handoff_id));
+    assert!(sent_items.contains("[completed]"));
+
+    let detail = s.call(9, "get_handoff", json!({"id": handoff_id}));
+    assert!(detail.contains("status: completed"));
+    assert!(detail.contains("result:\nDelivered the finished implementation."));
 }

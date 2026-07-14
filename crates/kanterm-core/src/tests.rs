@@ -204,12 +204,24 @@ fn agent_handoff_can_be_claimed_by_recipient_family() {
             Some(&agent.claim_token),
             &HandoffStatusPatch {
                 status: "completed".into(),
-                note: None,
+                note: Some("work result".into()),
             },
         )
         .unwrap();
     assert_eq!(completed.status, "completed");
     assert!(completed.completed_at.is_some());
+    assert_eq!(completed.result_text.as_deref(), Some("work result"));
+
+    let sent = store
+        .list_handoffs(HandoffListQuery {
+            sender: Some("codex#sender"),
+            status: Some("completed"),
+            limit: 10,
+            ..Default::default()
+        })
+        .unwrap();
+    assert_eq!(sent.len(), 1);
+    assert_eq!(sent[0].id, handoff.id);
 }
 
 #[test]

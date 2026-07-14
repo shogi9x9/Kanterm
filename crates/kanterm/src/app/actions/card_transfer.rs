@@ -3,7 +3,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 use kanterm_core::{Board, CardPatch};
 
 use crate::app::App;
-use crate::mode::{ArchiveBack, Mode};
+use crate::mode::{CardActionBack, Mode};
 
 impl App {
     pub(crate) fn card_move_destinations(&self) -> Vec<Board> {
@@ -14,7 +14,7 @@ impl App {
             .collect()
     }
 
-    pub(crate) fn open_card_board_move(&mut self, key: String, back: ArchiveBack) {
+    pub(crate) fn open_card_board_move(&mut self, key: String, back: CardActionBack) {
         if self.card_move_destinations().is_empty() {
             self.status = "no other active boards".into();
             return;
@@ -164,10 +164,7 @@ impl App {
         Ok(())
     }
 
-    fn return_from_card_board_move(&mut self, key: String, back: ArchiveBack) {
-        self.mode = match back {
-            ArchiveBack::Normal => Mode::Normal,
-            ArchiveBack::Detail => Mode::Detail { key, scroll: 0 },
-        };
+    fn return_from_card_board_move(&mut self, key: String, back: CardActionBack) {
+        self.mode = back.return_mode(Some(key));
     }
 }

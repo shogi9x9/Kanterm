@@ -4,7 +4,7 @@ use rusqlite::{params, OptionalExtension, Transaction, TransactionBehavior};
 use crate::agents::validate_agent_token;
 use crate::id::new_id;
 use crate::naming::derive_slug;
-use crate::{now_ms, AgentHandoff, HandoffDraft, HandoffStatusPatch, Store};
+use crate::{now_ms, AgentHandoff, HandoffDraft, HandoffListQuery, HandoffStatusPatch, Store};
 
 const DEFAULT_HANDOFF_LEASE_MINUTES: i64 = 60;
 const MAX_HANDOFF_LEASE_MINUTES: i64 = 24 * 60;
@@ -53,34 +53,47 @@ impl Store {
             .ok_or_else(|| anyhow!("created handoff could not be loaded"))
     }
 
-    pub fn list_handoffs(
-        &self,
-        recipient: Option<&str>,
-        include_closed: bool,
-        limit: i64,
-    ) -> Result<Vec<AgentHandoff>> {
-        let limit = limit.clamp(1, 100);
-        let recipient = recipient.and_then(trimmed_optional);
+    pub fn list_handoffs(&self, query: HandoffListQuery<'_>) -> Result<Vec<AgentHandoff>> {
+        let limit = query.limit.clamp(1, 100);
+        let recipient = query.recipient.and_then(trimmed_optional);
+        let sender = query.sender.and_then(trimmed_optional);
+        let status = query.status.map(normalize_status_filter).transpose()?;
         let recipient_base = recipient
             .and_then(|value| value.split_once('#').map(|(base, _)| base.to_string()))
             .unwrap_or_default();
-        let closed_clause = if include_closed {
+        let closed_clause = if query.include_closed || status.is_some() {
             ""
         } else {
             "AND status IN ('pending', 'claimed')"
         };
+        let ts = now_ms();
         let mut stmt = self.conn.prepare(&format!(
             "SELECT id, from_agent, to_agent, board_id, card_key, subject, body, status,
                     claimed_by, claimed_at, lease_expires_at, completed_at, failed_at,
-                    last_error, created_at, updated_at
+                    result_text, last_error, created_at, updated_at
                FROM agent_handoffs
               WHERE (?1 IS NULL OR to_agent = ?1 OR to_agent = ?2)
+                    AND (?3 IS NULL OR from_agent = ?3)
+                    AND (?4 IS NULL OR status = ?4)
                     {closed_clause}
+                    AND (?6 = 0 OR status = 'pending'
+                         OR (status = 'claimed' AND lease_expires_at <= ?7))
               ORDER BY created_at ASC
-              LIMIT ?3"
+              LIMIT ?5"
         ))?;
         let rows = stmt
-            .query_map(params![recipient, recipient_base, limit], row_to_handoff)?
+            .query_map(
+                params![
+                    recipient,
+                    recipient_base,
+                    sender,
+                    status,
+                    limit,
+                    query.claimable_only,
+                    ts
+                ],
+                row_to_handoff,
+            )?
             .collect::<rusqlite::Result<Vec<_>>>()?;
         Ok(rows)
     }
@@ -90,7 +103,7 @@ impl Store {
             .query_row(
                 "SELECT id, from_agent, to_agent, board_id, card_key, subject, body, status,
                         claimed_by, claimed_at, lease_expires_at, completed_at, failed_at,
-                        last_error, created_at, updated_at
+                        result_text, last_error, created_at, updated_at
                    FROM agent_handoffs
                   WHERE id = ?1",
                 params![id],
@@ -180,20 +193,29 @@ impl Store {
                 handoff.id
             ));
         }
-        let (completed_at, failed_at, last_error) = if status == "completed" {
-            (Some(ts), None, None)
+        let (completed_at, failed_at, result_text, last_error) = if status == "completed" {
+            (Some(ts), None, note, None)
         } else {
-            (None, Some(ts), note)
+            (None, Some(ts), None, note)
         };
         tx.execute(
             "UPDATE agent_handoffs
                 SET status = ?1,
                     completed_at = ?2,
                     failed_at = ?3,
-                    last_error = ?4,
-                    updated_at = ?5
-              WHERE id = ?6",
-            params![status, completed_at, failed_at, last_error, ts, id],
+                    result_text = ?4,
+                    last_error = ?5,
+                    updated_at = ?6
+              WHERE id = ?7",
+            params![
+                status,
+                completed_at,
+                failed_at,
+                result_text,
+                last_error,
+                ts,
+                id
+            ],
         )?;
         let updated = load_handoff_tx(&tx, id)?;
         tx.commit()?;
@@ -205,7 +227,7 @@ fn load_handoff_tx(tx: &Transaction<'_>, id: &str) -> Result<AgentHandoff> {
     tx.query_row(
         "SELECT id, from_agent, to_agent, board_id, card_key, subject, body, status,
                 claimed_by, claimed_at, lease_expires_at, completed_at, failed_at,
-                last_error, created_at, updated_at
+                result_text, last_error, created_at, updated_at
            FROM agent_handoffs
           WHERE id = ?1",
         params![id],
@@ -229,9 +251,10 @@ fn row_to_handoff(row: &rusqlite::Row<'_>) -> rusqlite::Result<AgentHandoff> {
         lease_expires_at: row.get(10)?,
         completed_at: row.get(11)?,
         failed_at: row.get(12)?,
-        last_error: row.get(13)?,
-        created_at: row.get(14)?,
-        updated_at: row.get(15)?,
+        result_text: row.get(13)?,
+        last_error: row.get(14)?,
+        created_at: row.get(15)?,
+        updated_at: row.get(16)?,
     })
 }
 
@@ -258,6 +281,18 @@ fn normalize_terminal_status(status: &str) -> Result<&'static str> {
         "completed" | "done" => Ok("completed"),
         "failed" | "error" => Ok("failed"),
         _ => Err(anyhow!("status must be completed or failed")),
+    }
+}
+
+fn normalize_status_filter(status: &str) -> Result<&'static str> {
+    match required(status, "status")? {
+        "pending" => Ok("pending"),
+        "claimed" => Ok("claimed"),
+        "completed" | "done" => Ok("completed"),
+        "failed" | "error" => Ok("failed"),
+        _ => Err(anyhow!(
+            "status filter must be pending, claimed, completed, or failed"
+        )),
     }
 }
 

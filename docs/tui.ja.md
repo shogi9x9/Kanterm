@@ -52,21 +52,21 @@ Kanterm は既定で、全ボードのアクティブな作業を横断するこ
   **WHY / NEXT** 列に表示。
 - **MISSING**: 実行 context が不足しているカード。
 
-`j` / `k` で移動、`Enter` で対象カードのボードへ切り替えて詳細を開き、`W` / `Esc`
-で戻ります。ボード画面と同じ live refresh 経路を使い、外部 MCP 更新も反映します。
+`j` / `k` で移動、`Enter` で対象カードのボードへ切り替えて詳細を開きます。LISTと
+TIMELINEのどちらでも`b`で画面を離れずにボードを切り替えられます。ボード画面と同じ
+live refresh 経路を使い、外部 MCP 更新も反映します。
+`d`で選択カード、`D`で現在のボードをarchiveでき、確認dialogも元の実行view上に
+表示されます。
 
-ダッシュボードには3つのviewがあります。`Tab` / `Shift-Tab` で巡回し、`1` / `2` / `3`
-で直接切り替えます:
+実行ダッシュボードにはKanbanタブと並ぶ2つのviewがあります。`Tab` / `Shift-Tab`で
+巡回し、`1` / `2` / `3`でKanban、LIST、TIMELINEを直接選択します:
 
 - **LIST**: 専用の **WHY / NEXT** 列を持つ、優先順の実行リスト。
 - **TIMELINE**: 日付ではなくdependency stageを横軸にするガント風の実行計画。同じ
   stageで並列実行でき、`██`は配置stage、`█◆`は期日付きカードを表します。stageが
   画面に収まらない場合は`h` / `l`で横移動します。
-- **FLOW**: 導出された実行stateと、READY / RUNNINGへ作業を流す条件を示す
-  state-machine風map。`h` / `l`でstate、`j` / `k`でそのstateのカードを選択します。
-
-TIMELINEとFLOWは既存core dataのprojectionです。calendar duration fieldを追加せず、
-TUI側にtransition policyを重複させません。
+TIMELINEは既存core dataのprojectionです。calendar duration fieldを追加せず、TUI側に
+transition policyを重複させません。
 
 ## 詳細モーダル
 

@@ -37,13 +37,13 @@ pub use domain::{
     card_is_stale, classify_graph_node, classify_work, priority_badge, priority_label, ActivityLog,
     AgentHandoff, AgentRegistration, AgentRegistrationResult, Board, Card, CardCreateDraft,
     CardDependency, CardPatch, CardReadiness, Column, DependencyBlockedCard, DependencyBlocker,
-    DependencyStagePlan, GraphNodeState, HandoffDraft, HandoffStatusPatch, HumanIntervention,
-    Label, Memory, MemoryPatch, WorkState, PRIORITY_HIGH, PRIORITY_LOW, PRIORITY_NORMAL,
-    STALE_CARD_MS,
+    DependencyStagePlan, GraphNodeState, HandoffDraft, HandoffListQuery, HandoffStatusPatch,
+    HumanIntervention, Label, Memory, MemoryPatch, WorkState, PRIORITY_HIGH, PRIORITY_LOW,
+    PRIORITY_NORMAL, STALE_CARD_MS,
 };
 
 /// Bump this whenever a migration is added. Stored in SQLite `PRAGMA user_version`.
-pub const SCHEMA_VERSION: i64 = 19;
+pub const SCHEMA_VERSION: i64 = 20;
 
 pub const BACKLOG_BOARD_COLUMNS: &[&str] = &["Backlog"];
 pub const PROTECTED_BOARD_SLUG: &str = "backlog";

@@ -33,7 +33,7 @@ targets:
     );
     let identity = response_field(&registered, "assigned_identity:").to_string();
     let token = response_field(&registered, "claim_token:").to_string();
-    s.call(
+    let sent = s.call(
         3,
         "send_handoff",
         json!({
@@ -43,6 +43,7 @@ targets:
             "body": "handoff body for target command"
         }),
     );
+    let handoff_id = response_field(&sent, "handoff_sent:").to_string();
 
     let output = Command::new(env!("CARGO_BIN_EXE_kanterm-mcp"))
         .env("KANBAN_DB", &db)
@@ -74,6 +75,12 @@ targets:
 
     let empty = s.call(4, "list_handoffs", json!({"for_agent": identity}));
     assert_eq!(empty, "no handoffs");
+    let detail = s.call(5, "get_handoff", json!({"id": handoff_id}));
+    assert!(detail.contains("status: completed"), "got: {detail}");
+    assert!(
+        detail.contains("result:\nKanterm handoff received."),
+        "got: {detail}"
+    );
 }
 
 #[test]
@@ -89,7 +96,7 @@ fn watch_handoffs_bridges_body_to_command() {
     );
     let identity = response_field(&registered, "assigned_identity:").to_string();
     let token = response_field(&registered, "claim_token:").to_string();
-    s.call(
+    let sent = s.call(
         3,
         "send_handoff",
         json!({
@@ -99,6 +106,7 @@ fn watch_handoffs_bridges_body_to_command() {
             "body": "handoff body for bridge"
         }),
     );
+    let handoff_id = response_field(&sent, "handoff_sent:").to_string();
     let bridge_script = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../scripts/kanterm-bridge-file-inbox.sh")
         .canonicalize()
@@ -147,4 +155,7 @@ fn watch_handoffs_bridges_body_to_command() {
     let _ = std::fs::remove_dir_all(&target_repo);
     assert!(bridged.contains("Bridge me"));
     assert!(bridged.contains("handoff body for bridge"));
+    let detail = s.call(4, "get_handoff", json!({"id": handoff_id}));
+    assert!(detail.contains("status: claimed"), "got: {detail}");
+    assert!(!detail.contains("result:"), "got: {detail}");
 }

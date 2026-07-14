@@ -3,7 +3,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::app::App;
 use crate::editor::Editor;
-use crate::mode::{ArchiveBack, InputKind, Mode};
+use crate::mode::{CardActionBack, InputKind, Mode};
 use kanterm_core::format_date;
 
 impl App {
@@ -111,7 +111,7 @@ impl App {
                 self.cycle_priority_key(&card_key)?;
             }
             KeyCode::Char('d') => {
-                self.prompt_archive_key(card_key, ArchiveBack::Detail);
+                self.prompt_archive_key(card_key, CardActionBack::Detail);
             }
             KeyCode::Char('x') => {
                 if let Some(c) = self.card_by_key(&card_key) {
@@ -131,7 +131,7 @@ impl App {
                 };
             }
             KeyCode::Char('M') => {
-                self.open_card_board_move(card_key, ArchiveBack::Detail);
+                self.open_card_board_move(card_key, CardActionBack::Detail);
             }
             _ => {}
         }

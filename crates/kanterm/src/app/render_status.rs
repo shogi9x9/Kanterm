@@ -102,13 +102,10 @@ impl App {
             Mode::ExecutionDashboard(state) => {
                 let help = match state.view {
                     crate::mode::ExecutionDashboardView::List => {
-                        " EXECUTION LIST  Tab/1-4 tabs  j/k move  Enter card  1 Kanban  Esc exit "
+                        " EXECUTION LIST  Tab/1-3 tabs  b boards  d card  D board  j/k move  Enter card  1 Kanban  Esc exit "
                     }
                     crate::mode::ExecutionDashboardView::Timeline => {
-                        " EXECUTION TIMELINE  Tab/1-4 tabs  h/l stages  j/k move  Enter card  1 Kanban  Esc exit "
-                    }
-                    crate::mode::ExecutionDashboardView::Flow => {
-                        " EXECUTION FLOW  Tab/1-4 tabs  h/l state  j/k cards  Enter card  1 Kanban  Esc exit "
+                        " EXECUTION TIMELINE  Tab/1-3 tabs  b boards  d card  D board  h/l stages  j/k move  Enter card  1 Kanban  Esc exit "
                     }
                 };
                 Line::from(Span::styled(help, Style::default().fg(theme().hint)))

@@ -22,15 +22,29 @@ pub(crate) enum BridgePrompt {
 
 #[derive(Debug, Clone)]
 pub(crate) enum Delivery {
+    Bridge(BridgeCommand),
     Command(BridgeCommand),
 }
 
-pub(super) fn deliver(handoff: &AgentHandoff, bridge: Option<&Delivery>) -> Result<()> {
+pub(super) enum DeliveryOutcome {
+    Delivered,
+    Completed(String),
+}
+
+pub(super) fn deliver(
+    handoff: &AgentHandoff,
+    bridge: Option<&Delivery>,
+) -> Result<DeliveryOutcome> {
     match bridge {
-        Some(Delivery::Command(command)) => run_bridge(handoff, command),
+        Some(Delivery::Bridge(command)) => {
+            run_bridge(handoff, command, false).map(|_| DeliveryOutcome::Delivered)
+        }
+        Some(Delivery::Command(command)) => {
+            run_bridge(handoff, command, true).map(DeliveryOutcome::Completed)
+        }
         None => {
             println!("{}", serde_json::to_string(&handoff_payload(handoff))?);
-            Ok(())
+            Ok(DeliveryOutcome::Delivered)
         }
     }
 }
@@ -53,13 +67,17 @@ pub(super) fn delivery_from_target(target: &DeliveryTarget) -> Result<Delivery> 
     }
 }
 
-fn run_bridge(handoff: &AgentHandoff, bridge: &BridgeCommand) -> Result<()> {
+fn run_bridge(
+    handoff: &AgentHandoff,
+    bridge: &BridgeCommand,
+    capture_stdout: bool,
+) -> Result<String> {
     let mut command = Command::new(&bridge.program);
     command.args(&bridge.args);
     if let Some(cwd) = &bridge.cwd {
         command.current_dir(cwd);
     }
-    let mut child = command
+    let command = command
         .env("KANTERM_HANDOFF_ID", &handoff.id)
         .env("KANTERM_HANDOFF_FROM_AGENT", &handoff.from_agent)
         .env("KANTERM_HANDOFF_TO_AGENT", &handoff.to_agent)
@@ -75,19 +93,24 @@ fn run_bridge(handoff: &AgentHandoff, bridge: &BridgeCommand) -> Result<()> {
                 .map(|v| v.to_string())
                 .unwrap_or_default(),
         )
-        .stdin(Stdio::piped())
-        .stdout(Stdio::inherit())
+        .stdin(Stdio::piped());
+    command.stdout(if capture_stdout {
+        Stdio::piped()
+    } else {
+        Stdio::inherit()
+    });
+    let mut child = command
         .stderr(Stdio::inherit())
         .spawn()
         .with_context(|| format!("spawning bridge command '{}'", bridge.program))?;
     if let Some(mut stdin) = child.stdin.take() {
         stdin.write_all(bridge_prompt(handoff, bridge.prompt).as_bytes())?;
     }
-    let status = child.wait()?;
-    if status.success() {
-        Ok(())
+    let output = child.wait_with_output()?;
+    if output.status.success() {
+        Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
     } else {
-        Err(anyhow!("bridge command exited with {status}"))
+        Err(anyhow!("bridge command exited with {}", output.status))
     }
 }
 

@@ -20,7 +20,8 @@ Cards are addressed by key, e.g. `KB-12`.
 | `dependency_graph` | render dependency edges, executable stages, and blockers |
 | `register_agent` | request an agent display name and receive an assigned identity such as `codex#abc123` plus a claim token |
 | `send_handoff` | send a durable inbox message to an exact agent identity or agent family name |
-| `list_handoffs` | list open handoffs, optionally scoped to one agent inbox |
+| `list_handoffs` | list handoffs by recipient, sender, or status; defaults to open handoffs |
+| `get_handoff` | read one handoff in full, including its completed result or failure error |
 | `claim_handoff` | claim one handoff with an agent identity and claim token, setting a recoverable lease |
 | `complete_handoff` | mark a claimed handoff as `completed` or `failed` |
 | `update_card` | update any field; `column` moves it, `move_to_board` moves it to another board (by slug), `add_labels` / `remove_labels` tag it, `due` (`YYYY-MM-DD`, `""` clears) sets a deadline, `next_action` / `blocked_reason` / `acceptance_criteria` capture handoff state, execution metadata describes agent suitability, and `claim` / `claim_token` / `release_claim` / `lease_minutes` coordinate agent ownership |
@@ -54,7 +55,10 @@ Durable agent-to-agent handoffs are separate from card fields. `send_handoff`
 stores an inbox item in the same SQLite database and can address either an exact
 identity (`claude#abc123`) or an agent family (`claude`). A receiving agent, hook,
 or watcher can call `list_handoffs(for_agent="claude#abc123")`, claim work with
-`claim_handoff`, then close it with `complete_handoff`. The lease lets another
+`claim_handoff`, then close it with `complete_handoff`. A completed `note` is
+stored as the durable result; a failed `note` is stored as the error. The sender
+can use `list_handoffs(from_agent=..., status="completed")` to detect completion,
+then call `get_handoff(id=...)` to retrieve the result. The lease lets another
 watcher recover a handoff if the first receiver exits before acting on it.
 Runtime-specific hooks or bridges should be thin delivery layers on top of this
 queue; the handoff state itself is durable in Kanterm.
@@ -67,10 +71,13 @@ kanterm-mcp watch-handoffs \
   --claim-token "$CLAIM_TOKEN"
 ```
 
-The watcher polls the Kanterm DB, claims matching handoffs, writes each claimed
-handoff as one JSON line to stdout, and marks it `completed` after successful
-delivery. `--once` performs a single scan for hooks/tests. `--interval-ms`
-changes the polling interval.
+The watcher polls the Kanterm DB, claims matching handoffs, and writes each
+claimed handoff as one JSON line to stdout. Stdout and `--bridge-command` are
+delivery-only: the handoff remains `claimed` until the receiving agent calls
+`complete_handoff` with its result. A configured command target is synchronous;
+its stdout is captured as the result and the handoff is marked `completed`.
+`--once` performs a single scan for hooks/tests. `--interval-ms` changes the
+polling interval.
 Inspired by agmsg's monitor watcher, each watcher writes a pidfile and ready
 sentinel under `KANTERM_RUN_DIR` or the default temp run directory. The ready
 file is `watch.<agent>.ready`, and it appears after the watcher has claimed its
@@ -95,8 +102,9 @@ kanterm-mcp watch-handoffs \
 The bridge receives the handoff body on stdin and metadata in environment
 variables such as `KANTERM_HANDOFF_ID`, `KANTERM_HANDOFF_FROM_AGENT`,
 `KANTERM_HANDOFF_TO_AGENT`, `KANTERM_HANDOFF_SUBJECT`, `KANTERM_HANDOFF_CARD_KEY`,
-and `KANTERM_HANDOFF_LEASE_EXPIRES_AT`. Exit code 0 marks the handoff
-`completed`; a non-zero exit marks it `failed` with the bridge error.
+and `KANTERM_HANDOFF_LEASE_EXPIRES_AT`. Exit code 0 confirms delivery but leaves
+the handoff claimed for explicit receiver completion; a non-zero exit marks it
+`failed` with the bridge error.
 Kanterm ships two generic bridges: `scripts/kanterm-bridge-file-inbox.sh` writes
 a Markdown inbox file under the target repo, and
 `scripts/kanterm-bridge-agent-command.sh` runs an arbitrary command in the target
@@ -195,7 +203,8 @@ To let the receiving side continue the chain without an outer script manually
 calling `update_card`, use `kanterm-mcp run-agent-task`. It claims one incoming
 handoff, runs the configured command target, completes the specified Kanterm
 card with the command output as the completion note, and optionally triggers the
-next workflow step:
+next workflow step. The same command output is stored as the incoming handoff's
+result for the sender to retrieve:
 
 ```sh
 kanterm-mcp run-agent-task \
