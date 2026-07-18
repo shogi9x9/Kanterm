@@ -5,15 +5,20 @@
 //! migrations, and write logic live here so the two frontends can never drift.
 
 mod activity;
+mod agent_task_attempts;
+mod agent_work_packet;
 mod agents;
+mod board_execution_prompt;
 mod board_template;
 mod boards;
 mod cards;
 mod columns;
+mod config;
 mod database;
 mod dates;
 mod dependencies;
 mod domain;
+mod execution_prompt;
 mod export;
 mod handoffs;
 mod id;
@@ -29,7 +34,17 @@ mod ui_state;
 use anyhow::Result;
 use rows::CARD_COLUMNS;
 
+pub use agent_task_attempts::AgentTaskAttempt;
+pub use agent_work_packet::{
+    AgentWorkPacket, AgentWorkPacketAttemptDelta, AgentWorkPacketProfile,
+    AgentWorkPacketResumeDelta, AGENT_WORK_PACKET_VERSION, MAX_RESUME_DELTA_CHARS,
+};
+pub use board_execution_prompt::{
+    build_board_execution_prompt, BoardCardProgress, BoardExecutionPromptSnapshot,
+    BOARD_EXECUTION_PROMPT_VERSION,
+};
 pub use board_template::BoardColumnTemplate;
+pub use config::*;
 pub use database::Store;
 pub(crate) use dates::MS_PER_DAY;
 pub use dates::{format_date, now_ms, parse_date, today_start_ms};
@@ -41,9 +56,13 @@ pub use domain::{
     HumanIntervention, Label, Memory, MemoryPatch, WorkState, PRIORITY_HIGH, PRIORITY_LOW,
     PRIORITY_NORMAL, STALE_CARD_MS,
 };
+pub use execution_prompt::{
+    build_execution_prompt, build_resume_prompt, build_verification_prompt,
+    ExecutionPromptSnapshot, EXECUTION_PROMPT_VERSION, MAX_EXECUTION_PROMPT_BYTES,
+};
 
 /// Bump this whenever a migration is added. Stored in SQLite `PRAGMA user_version`.
-pub const SCHEMA_VERSION: i64 = 20;
+pub const SCHEMA_VERSION: i64 = 21;
 
 pub const BACKLOG_BOARD_COLUMNS: &[&str] = &["Backlog"];
 pub const PROTECTED_BOARD_SLUG: &str = "backlog";

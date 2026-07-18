@@ -6,6 +6,18 @@
 
 ## Unreleased
 
+- `orient`、`execute`、`verify`、bounded `resume` profileを共有する
+  `kanterm-agent-work-packet/v1`と、board / card packetをcopy前に確認するTUI previewを追加。
+- 各自動試行の完全なpacket、digest、target、process結果、output、errorを永続化し
+  （migration 0021）、retryをbounded resume deltaから構築するように変更。
+- agent processの成功と検証済みcard完了を分離。cardのarchiveや次workflow stepの
+  triggerには、明示したverification commandの成功を必須化。
+- command targetのdelivery、environment、network、workspace、approval、verification、
+  writable path policyを検証し、未対応のisolationを暗黙に保証しないように変更。
+- Cursor Agent CLIを非対話text modeで起動し、完全なwork packetをprompt引数として渡す
+  first-classな`type: cursor` targetを追加。直接変更は明示的なno-prompt policy時だけ有効化。
+- version付きglobal / project configの自動検出、`kanterm config`の
+  path / show / init / edit / validate、headless runnerのtarget / workflow defaultを追加。
 - FLOW実行タブを削除し、Kanban、LIST、TIMELINEを`Tab` / `Shift+Tab`および
   `1` / `2` / `3`で切り替える構成に変更。
 - LISTとTIMELINEから`b`でボードを切り替え、元の実行viewへ戻れるように変更。

@@ -20,9 +20,9 @@
 | `i`            | edit the current board's agent context (empty clears) |
 | `M`            | move selected card to another board/column (`send-project` on Backlog) |
 | `c`            | manage columns (add/rename/reorder/delete) |
-| `Tab`          | switch to the next board            |
+| `Tab` / `Shift-Tab` | cycle Kanban, LIST, and TIMELINE |
+| `C`            | preview the active board orientation packet |
 | `w`            | jump to the next local work candidate |
-| `W`            | open the cross-board execution dashboard |
 | `/`            | filter cards (title/body/label)     |
 | `Enter`        | open the card **detail modal**      |
 | `e`            | quick-edit the selected card's title |
@@ -40,9 +40,9 @@ title, body or labels; submit an empty filter to clear it.
 
 ## Execution dashboard
 
-Kanterm opens in this cross-board control view by default. From the board, press
-`W` to reopen it. It groups all active work using the same core execution
-classification as MCP queues:
+Kanterm opens in the active board's execution control view by default. Use
+`Tab` / `Shift-Tab` to return from Kanban. It groups active-board work using the
+same core execution classification as MCP queues:
 
 - **RUNNING**: actively claimed cards, with owner and remaining lease.
 - **HUMAN**: review, decision, or human-execution gates.
@@ -57,6 +57,8 @@ and `b` to switch boards without leaving LIST or TIMELINE. The dashboard follows
 external MCP writes through the same live-refresh path as the board.
 Use `d` to archive the selected card or `D` to archive the active board; each
 confirmation stays over the originating execution view.
+Use `C` to preview the active board's orientation packet without changing or
+claiming any card.
 
 The execution dashboard has two views alongside the Kanban tab. Press `Tab` /
 `Shift-Tab` to cycle or `1` / `2` / `3` to select Kanban, LIST, or TIMELINE:
@@ -71,11 +73,21 @@ fields or duplicate transition policy in the TUI.
 
 ## Detail modal
 
-In the **detail modal**: `e` title · `b` edit body (multi-line) · `M` move to
-another board/column · `p` priority · `a` assignee · `D` due date (`YYYY-MM-DD`,
-empty to clear) · `t` labels · `x` complete with an optional note · `d` archive ·
-`Esc` back. Completing a card archives it, marks `agent_state=done`, clears active
-handoff fields, and releases any claim. Overdue cards show a red `⏰` chip.
+In the **detail modal**: `C` preview the card execution packet · `e` title · `b`
+edit body (multi-line) · `M` move to another board/column · `p` priority · `a`
+assignee · `D` due date (`YYYY-MM-DD`, empty to clear) · `t` labels · `x`
+complete with an optional note · `d` archive · `Esc` back. Completing a card
+archives it, marks `agent_state=done`, clears active handoff fields, and releases
+any claim. Overdue cards show a red `⏰` chip.
+
+## Agent work packet preview
+
+Kanterm uses `kanterm-agent-work-packet/v1` for both clipboard export and
+automated command delivery. `C` opens a read-only preview first: on Kanban,
+LIST, and TIMELINE it uses the `orient` profile for the active board; in card
+detail it uses the `execute` profile for that card. Scroll with `j` / `k`, copy
+with `Enter`, `c`, or `y`, and return with `q` / `Esc`. Board and card text is
+delimited as untrusted data inside the packet.
 
 From the board, `u` restores the latest reversible card update on the active
 board, including accidental archive, complete and card move operations. Hard

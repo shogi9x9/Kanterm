@@ -221,6 +221,44 @@ impl Store {
         tx.commit()?;
         Ok(updated)
     }
+
+    pub fn requeue_handoff(
+        &mut self,
+        id: &str,
+        claimant: &str,
+        claim_token: Option<&str>,
+        note: Option<&str>,
+    ) -> Result<AgentHandoff> {
+        self.assert_writable()?;
+        let claimant = required(claimant, "claimant")?;
+        let note = note.and_then(trimmed_optional);
+        let ts = now_ms();
+        let tx = self
+            .conn
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        validate_agent_token(&tx, claimant, claim_token, ts)?;
+        let handoff = load_handoff_tx(&tx, id)?;
+        if handoff.claimed_by.as_deref() != Some(claimant) || handoff.status != "claimed" {
+            return Err(anyhow!(
+                "handoff '{}' must be claimed by '{claimant}' before requeue",
+                handoff.id
+            ));
+        }
+        tx.execute(
+            "UPDATE agent_handoffs
+                SET status = 'pending',
+                    claimed_by = NULL,
+                    claimed_at = NULL,
+                    lease_expires_at = NULL,
+                    last_error = ?1,
+                    updated_at = ?2
+              WHERE id = ?3",
+            params![note, ts, id],
+        )?;
+        let updated = load_handoff_tx(&tx, id)?;
+        tx.commit()?;
+        Ok(updated)
+    }
 }
 
 fn load_handoff_tx(tx: &Transaction<'_>, id: &str) -> Result<AgentHandoff> {

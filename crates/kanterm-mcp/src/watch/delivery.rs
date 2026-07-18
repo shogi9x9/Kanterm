@@ -1,10 +1,10 @@
 use anyhow::{anyhow, Context, Result};
-use kanterm_core::AgentHandoff;
+use kanterm_core::{AgentHandoff, AgentWorkPacket};
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
-use crate::targets::DeliveryTarget;
+use crate::targets::{DeliveryTarget, PromptTransport, TargetPolicy};
 
 #[derive(Debug, Clone)]
 pub(crate) struct BridgeCommand {
@@ -12,12 +12,14 @@ pub(crate) struct BridgeCommand {
     pub(crate) args: Vec<String>,
     pub(crate) cwd: Option<PathBuf>,
     pub(crate) prompt: BridgePrompt,
+    pub(crate) prompt_transport: PromptTransport,
+    pub(crate) policy: Option<TargetPolicy>,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum BridgePrompt {
     Body,
-    Formatted,
+    Packet,
 }
 
 #[derive(Debug, Clone)]
@@ -55,7 +57,9 @@ pub(super) fn delivery_from_target(target: &DeliveryTarget) -> Result<Delivery> 
             program: command.command.clone(),
             args: command.args.clone(),
             cwd: command.repo.clone(),
-            prompt: BridgePrompt::Formatted,
+            prompt: BridgePrompt::Packet,
+            prompt_transport: command.prompt_transport,
+            policy: Some(command.policy.clone()),
         })),
         DeliveryTarget::Interactive(target) => Err(anyhow!(
             "interactive target '{}' is configured for adapter '{}' session '{}' pane '{}' but watcher delivery is not implemented yet",
@@ -77,6 +81,24 @@ fn run_bridge(
     if let Some(cwd) = &bridge.cwd {
         command.current_dir(cwd);
     }
+    if let Some(policy) = &bridge.policy {
+        policy.configure_process(&mut command)?;
+    }
+    let rendered_prompt = bridge_prompt(handoff, bridge.prompt)?;
+    let prompt_on_stdin = match bridge.prompt_transport {
+        PromptTransport::Stdin => true,
+        PromptTransport::Argument => {
+            command.arg(&rendered_prompt);
+            false
+        }
+    };
+    command.env(
+        "KANTERM_DELIVERY_MODE",
+        match bridge.prompt {
+            BridgePrompt::Body => "handoff-body",
+            BridgePrompt::Packet => "packet",
+        },
+    );
     let command = command
         .env("KANTERM_HANDOFF_ID", &handoff.id)
         .env("KANTERM_HANDOFF_FROM_AGENT", &handoff.from_agent)
@@ -93,7 +115,11 @@ fn run_bridge(
                 .map(|v| v.to_string())
                 .unwrap_or_default(),
         )
-        .stdin(Stdio::piped());
+        .stdin(if prompt_on_stdin {
+            Stdio::piped()
+        } else {
+            Stdio::null()
+        });
     command.stdout(if capture_stdout {
         Stdio::piped()
     } else {
@@ -103,8 +129,12 @@ fn run_bridge(
         .stderr(Stdio::inherit())
         .spawn()
         .with_context(|| format!("spawning bridge command '{}'", bridge.program))?;
-    if let Some(mut stdin) = child.stdin.take() {
-        stdin.write_all(bridge_prompt(handoff, bridge.prompt).as_bytes())?;
+    if prompt_on_stdin {
+        let mut stdin = child
+            .stdin
+            .take()
+            .ok_or_else(|| anyhow!("bridge command stdin was not available"))?;
+        stdin.write_all(rendered_prompt.as_bytes())?;
     }
     let output = child.wait_with_output()?;
     if output.status.success() {
@@ -114,20 +144,10 @@ fn run_bridge(
     }
 }
 
-fn bridge_prompt(handoff: &AgentHandoff, prompt: BridgePrompt) -> String {
+fn bridge_prompt(handoff: &AgentHandoff, prompt: BridgePrompt) -> Result<String> {
     match prompt {
-        BridgePrompt::Body => handoff.body.clone(),
-        BridgePrompt::Formatted => format!(
-            "Kanterm handoff received.\n\nhandoff_id: {}\nfrom_agent: {}\nto_agent: {}\nsubject: {}\nboard_id: {}\ncard_key: {}\nlease_expires_at: {}\n\nTask:\n{}\n",
-            handoff.id,
-            handoff.from_agent,
-            handoff.to_agent,
-            handoff.subject,
-            opt(&handoff.board_id),
-            opt(&handoff.card_key),
-            handoff.lease_expires_at.map(|v| v.to_string()).unwrap_or_default(),
-            handoff.body
-        ),
+        BridgePrompt::Body => Ok(handoff.body.clone()),
+        BridgePrompt::Packet => AgentWorkPacket::execute_handoff(handoff).render(),
     }
 }
 

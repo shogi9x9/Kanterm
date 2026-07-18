@@ -69,8 +69,9 @@ targets:
     );
     let delivered = std::fs::read_to_string(&target_output).unwrap();
     let _ = std::fs::remove_dir_all(&target_repo);
-    assert!(delivered.contains("Kanterm handoff received."));
-    assert!(delivered.contains("subject: Target delivery"));
+    assert!(delivered.starts_with("kanterm-agent-work-packet/v1\nprofile: execute\n"));
+    assert!(delivered.contains("## Control contract"));
+    assert!(delivered.contains("Target delivery"));
     assert!(delivered.contains("handoff body for target command"));
 
     let empty = s.call(4, "list_handoffs", json!({"for_agent": identity}));
@@ -78,7 +79,7 @@ targets:
     let detail = s.call(5, "get_handoff", json!({"id": handoff_id}));
     assert!(detail.contains("status: completed"), "got: {detail}");
     assert!(
-        detail.contains("result:\nKanterm handoff received."),
+        detail.contains("result:\nkanterm-agent-work-packet/v1"),
         "got: {detail}"
     );
 }

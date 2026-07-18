@@ -9,6 +9,24 @@ once public releases begin.
 
 ## Unreleased
 
+- Add `kanterm-agent-work-packet/v1` with shared `orient`, `execute`, `verify`,
+  and bounded `resume` profiles, plus TUI preview-before-copy for board and card
+  packets.
+- Persist the exact packet, digest, target, process result, output, and error for
+  every automated attempt (migration 0021), and build retries from a bounded
+  resume delta.
+- Separate agent process success from verified card completion: an explicit
+  verification command must pass before archiving a card or triggering its next
+  workflow step.
+- Validate command-target delivery, environment, network, workspace, approval,
+  verification, and writable-path policy instead of silently claiming
+  unsupported isolation.
+- Add a first-class `type: cursor` target that invokes Cursor Agent CLI in
+  non-interactive text mode, passes the exact work packet as its prompt
+  argument, and enables direct changes only under an explicit no-prompt policy.
+- Add versioned global/project config discovery, `kanterm config`
+  path/show/init/edit/validate commands, and automatic target/workflow defaults
+  for headless runners.
 - Remove the FLOW execution tab and keep Kanban, LIST, and TIMELINE navigation
   on `Tab` / `Shift+Tab` and `1` / `2` / `3`.
 - Support `b` board switching from LIST and TIMELINE while returning to the

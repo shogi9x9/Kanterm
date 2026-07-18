@@ -83,11 +83,30 @@ impl App {
                 " BODY  arrows move  Enter newline  Ctrl-S save  Esc cancel ",
                 Style::default().fg(theme().contrast_fg).bg(theme().success),
             )),
+            Mode::ExecutionPrompt { .. } | Mode::BoardExecutionPrompt { .. } => {
+                let (text, background) = if self.status.is_empty() {
+                    (
+                        " PROMPT PREVIEW  j/k scroll  Enter/c/y copy  q/Esc back ".to_string(),
+                        theme().warning,
+                    )
+                } else {
+                    let background = if self.status.starts_with("clipboard request failed") {
+                        theme().danger
+                    } else {
+                        theme().success
+                    };
+                    (format!(" {}  q/Esc back ", self.status), background)
+                };
+                Line::from(Span::styled(
+                    text,
+                    Style::default().fg(theme().contrast_fg).bg(background),
+                ))
+            }
             Mode::Detail { .. } => {
                 let help = if self.board.slug == PROTECTED_BOARD_SLUG {
-                    " DETAIL  e title  b body  M send-project  p priority  a assignee  D due  t labels  m metadata  x complete+note  d archive  Esc back "
+                    " DETAIL  C prompt  e title  b body  M send-project  p priority  a assignee  D due  t labels  m metadata  x complete+note  d archive  Esc back "
                 } else {
-                    " DETAIL  e title  b body  M move-board  p priority  a assignee  D due  t labels  m metadata  x complete+note  d archive  Esc back "
+                    " DETAIL  C prompt  e title  b body  M move-board  p priority  a assignee  D due  t labels  m metadata  x complete+note  d archive  Esc back "
                 };
                 Line::from(Span::styled(help, Style::default().fg(theme().hint)))
             }
@@ -102,10 +121,10 @@ impl App {
             Mode::ExecutionDashboard(state) => {
                 let help = match state.view {
                     crate::mode::ExecutionDashboardView::List => {
-                        " EXECUTION LIST  Tab/1-3 tabs  b boards  d card  D board  j/k move  Enter card  1 Kanban  Esc exit "
+                        " EXECUTION LIST  Tab/1-3 tabs  C context  b boards  d card  D board  j/k move  Enter card  1 Kanban  Esc exit "
                     }
                     crate::mode::ExecutionDashboardView::Timeline => {
-                        " EXECUTION TIMELINE  Tab/1-3 tabs  b boards  d card  D board  h/l stages  j/k move  Enter card  1 Kanban  Esc exit "
+                        " EXECUTION TIMELINE  Tab/1-3 tabs  C context  b boards  d card  D board  h/l stages  j/k move  Enter card  1 Kanban  Esc exit "
                     }
                 };
                 Line::from(Span::styled(help, Style::default().fg(theme().hint)))
@@ -122,6 +141,7 @@ impl App {
                         ("n", "new"),
                         ("M", "send"),
                         ("Tab", "tabs"),
+                        ("C", "context"),
                         ("↵", "open"),
                         ("/", "find"),
                         ("b", "boards"),
@@ -134,6 +154,7 @@ impl App {
                         ("H/L", "move"),
                         ("n", "new"),
                         ("Tab", "tabs"),
+                        ("C", "context"),
                         ("↵", "open"),
                         ("/", "find"),
                         ("b", "boards"),

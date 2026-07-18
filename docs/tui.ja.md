@@ -20,9 +20,9 @@ English version: [tui.md](tui.md)
 | `i`            | 現在ボードの agent context を編集（空入力でクリア） |
 | `M`            | 選択カードを別ボード/列へ移動（Backlog 上では `send-project`） |
 | `c`            | 列管理（追加/変更/並べ替え/削除）   |
-| `Tab`          | 次のボードへ切替                    |
+| `Tab` / `Shift-Tab` | Kanban、LIST、TIMELINEを巡回   |
+| `C`            | 現在ボードのorientation packetをpreview |
 | `w`            | 次のローカル作業候補へジャンプ      |
-| `W`            | 全ボード横断の実行ダッシュボードを開く |
 | `/`            | カードを絞り込み（title/body/label）|
 | `Enter`        | カードの **詳細モーダル** を開く    |
 | `e`            | 選択カードのタイトルを簡易編集      |
@@ -40,9 +40,9 @@ English version: [tui.md](tui.md)
 
 ## 実行ダッシュボード
 
-Kanterm は既定で、全ボードのアクティブな作業を横断するこの control view から
-起動します。ボード画面から `W` で再度開けます。MCP queue と同じ core の実行分類を
-使ってカードをグループ化します:
+Kanterm は既定で、アクティブボードの実行control viewから起動します。Kanbanからは
+`Tab` / `Shift-Tab`で戻れます。MCP queueと同じcoreの実行分類を使い、現在ボードの
+カードをグループ化します:
 
 - **RUNNING**: claim 中のカード。owner と残り lease を表示。
 - **HUMAN**: review、decision、human execution gate。
@@ -57,6 +57,7 @@ TIMELINEのどちらでも`b`で画面を離れずにボードを切り替えら
 live refresh 経路を使い、外部 MCP 更新も反映します。
 `d`で選択カード、`D`で現在のボードをarchiveでき、確認dialogも元の実行view上に
 表示されます。
+`C`ではカードを変更・claimせず、現在ボードのorientation packetをpreviewできます。
 
 実行ダッシュボードにはKanbanタブと並ぶ2つのviewがあります。`Tab` / `Shift-Tab`で
 巡回し、`1` / `2` / `3`でKanban、LIST、TIMELINEを直接選択します:
@@ -70,11 +71,20 @@ transition policyを重複させません。
 
 ## 詳細モーダル
 
-**詳細モーダル** では: `e` タイトル · `b` 本文編集（複数行）· `M` 別ボード/列へ
-移動 · `p` 優先度 · `a` 担当者 · `D` 期日（`YYYY-MM-DD`、空でクリア）· `t`
-ラベル · `x` 任意メモ付きで完了 · `d` アーカイブ · `Esc` 戻る。
+**詳細モーダル** では: `C` カードexecution packetのpreview · `e` タイトル · `b`
+本文編集（複数行）· `M` 別ボード/列へ移動 · `p` 優先度 · `a` 担当者 · `D` 期日
+（`YYYY-MM-DD`、空でクリア）· `t` ラベル · `x` 任意メモ付きで完了 · `d` アーカイブ ·
+`Esc` 戻る。
 完了すると、カードはアーカイブされ、`agent_state=done` になり、進行中の handoff
 field と claim がクリアされます。期限切れカードは赤い `⏰` チップを表示します。
+
+## agent work packet preview
+
+Kantermはclipboard exportとcommand自動配送の両方で
+`kanterm-agent-work-packet/v1`を使います。`C`は先にread-only previewを開きます。
+Kanban、LIST、TIMELINEでは現在ボードの`orient` profile、カード詳細ではそのカードの
+`execute` profileです。`j` / `k`でscrollし、`Enter` / `c` / `y`でcopy、`q` / `Esc`で
+戻ります。board / card本文はpacket内でuntrusted dataとして明示的に区切られます。
 
 ボード画面で `u` を押すと、アクティブボード上の直近の取り消し可能なカード更新
 （誤アーカイブ、完了、カード移動など）を戻せます。完全削除は意図的に undo 対象外

@@ -22,6 +22,11 @@ cards waiting on upstream tasks, queue=review surfaces cards \
 needing human review, queue=human surfaces all human-gated cards, queue=missing_context \
 surfaces cards that lack next_action or acceptance_criteria, and queue=blocked/claimed \
 separates unavailable work. \
+Treat a target process exit as an execution result, not proof that a card is complete. \
+Automated execution must preserve the exact versioned work packet and attempt result, then run \
+an explicit verification command before archiving the card or triggering downstream workflow. \
+If verification is absent or fails, keep the card resumable and record the outcome in \
+last_verification instead of marking it done. \
 Agents should call register_agent before claiming cards. It returns an assigned identity \
 such as `codex#abc123` plus a claim token; use the assigned identity as update_card.claim \
 and pass claim_token for claim/release operations. Inspect get_card agent_metadata before \

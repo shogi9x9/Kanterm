@@ -53,6 +53,16 @@ pub(crate) enum Mode {
         key: String,
         scroll: u16,
     },
+    ExecutionPrompt {
+        key: String,
+        prompt: String,
+        scroll: u16,
+    },
+    BoardExecutionPrompt {
+        prompt: String,
+        scroll: u16,
+        back: ViewBack,
+    },
     AgentMetadata {
         key: String,
         scroll: u16,
@@ -198,6 +208,7 @@ impl Mode {
             Self::BoardSwitcher { back, .. } | Self::BoardArchive { back, .. } => {
                 back.dashboard_state()
             }
+            Self::BoardExecutionPrompt { back, .. } => back.dashboard_state(),
             Self::ArchiveConfirm { back, .. } => back.dashboard_state(),
             _ => None,
         }

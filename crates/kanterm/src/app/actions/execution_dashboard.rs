@@ -24,6 +24,9 @@ impl App {
             KeyCode::Char('2') => self.open_execution_dashboard(ExecutionDashboardView::List),
             KeyCode::Char('3') => self.open_execution_dashboard(ExecutionDashboardView::Timeline),
             KeyCode::Char('b') => self.open_board_switcher_from_dashboard(state),
+            KeyCode::Char('C') => {
+                self.open_board_execution_prompt(ViewBack::ExecutionDashboard(state))
+            }
             KeyCode::Char('d') => self.prompt_archive_from_dashboard(state)?,
             KeyCode::Char('D') => self.prompt_board_archive_from_dashboard(state),
             KeyCode::Char('j') | KeyCode::Down => self.move_dashboard_cursor(state, true)?,

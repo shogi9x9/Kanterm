@@ -133,6 +133,7 @@ impl App {
             KeyCode::Char('M') => {
                 self.open_card_board_move(card_key, CardActionBack::Detail);
             }
+            KeyCode::Char('C') => self.open_execution_prompt(card_key),
             _ => {}
         }
         Ok(())

@@ -5,6 +5,8 @@
 //! `kanterm_core::Store`.
 
 mod app;
+mod clipboard;
+mod config_cli;
 mod editor;
 mod layout;
 mod mode;
@@ -17,13 +19,17 @@ use std::path::Path;
 use theme::init_theme;
 
 fn main() -> Result<()> {
+    let args: Vec<String> = std::env::args().collect();
+    if config_cli::run(&args[1..])? {
+        return Ok(());
+    }
+
     let path = match std::env::var_os("KANBAN_DB") {
         Some(p) => std::path::PathBuf::from(p),
         None => Store::default_db_path()?,
     };
 
     // Headless export mode: `kanterm --export json|md`. No TUI.
-    let args: Vec<String> = std::env::args().collect();
     if let Some(pos) = args.iter().position(|a| a == "--backup-db") {
         let destination = args
             .get(pos + 1)

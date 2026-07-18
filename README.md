@@ -27,10 +27,13 @@ and see each other's writes live.
 - **Execution-oriented cards** — handoff notes, dependencies (DAGs), execution
   metadata, and per-board instructions turn a plan into claimable,
   verifiable work.
+- **Versioned agent work packets** — board orientation, card execution,
+  verification, and bounded resume context share one deterministic packet
+  format across TUI clipboard export and automated command delivery.
 - **Human control plane** — an active-board execution list surfaces running,
   human-gated, ready, explicitly blocked, dependency-waiting, and
-  missing-context work; the same board's dependency-stage timeline and
-  derived-state flow map provide focused execution views.
+  missing-context work; the same board's dependency-stage timeline provides a
+  focused execution view.
 - **Multiple boards + memory log** — `workflow` / `planning` / `simple` column
   templates, cross-board moves, archive & restore, and a durable
   decisions/learnings log that survives across sessions.
@@ -92,6 +95,9 @@ with `b` is available from all three tabs. In LIST and TIMELINE, `d` archives
 the selected card and `D` archives the active board without leaving the view.
 In an execution tab, `Enter` opens card detail over the current tab and `Esc`
 exits Kanterm; `Esc` inside card detail closes only the modal.
+Press `C` in Kanban, LIST, or TIMELINE to preview the active board's orientation
+packet. In card detail, `C` previews the selected card's execution packet.
+`Enter`, `c`, or `y` copies only after the preview is visible.
 The board remembers your focused column, selected card, and active board between
 launches.
 
@@ -116,6 +122,14 @@ delivering durable handoffs into another runtime, and `kanterm-mcp run-workflow`
 can turn a small workflow YAML step completion into a cross-repo handoff.
 Reusable target configs let workflows route to command targets now, with
 interactive session targets reserved for terminal adapters.
+Automated command runs retain the exact packet and digest for each attempt,
+switch retries to bounded resume packets, and require an explicit successful
+verification command before completing a card or triggering its next workflow.
+Target YAML includes a first-class `type: cursor` adapter for Cursor Agent CLI
+headless execution while retaining `type: command` for custom runtimes.
+Reusable target/workflow paths can be stored globally or in
+`<repo>/.kanterm/config.yaml`; `kanterm config path|show|init|edit|validate`
+makes those files discoverable and manageable without entering the TUI.
 
 The full tool reference, execution flow, execution metadata, queue filters, and
 import examples are in **[docs/mcp.md](docs/mcp.md)**.

@@ -357,11 +357,39 @@ after fan-in.
   ID and sender/status filters make completion polling discoverable over MCP.
 - **Runtime delivery**: `watch-handoffs` claims and delivers inbox items through
   command targets or thin bridge scripts. Target YAML keeps routing reusable;
-  interactive tmux/zellij target shapes are parsed but remain deferred.
+  named command and Cursor targets receive the versioned packet control
+  contract with handoff data delimited as untrusted input. `type: cursor`
+  adapts that packet to Cursor Agent CLI's headless prompt argument, while
+  interactive tmux/zellij target shapes remain deferred.
+- **Agent work packets**: `kanterm-agent-work-packet/v1` is the shared,
+  deterministic envelope for `orient`, `execute`, `verify`, and `resume`
+  profiles. Board/card content is delimited as untrusted data. TUI clipboard
+  preview and `run-agent-task` delivery call the same core renderer.
+- **Attempt audit trail** (migration 0021): every automated attempt stores its
+  exact packet, profile, SHA-256 digest, target, process outcome, output, and
+  error. Retries use a bounded resume delta: the original digest, three latest
+  attempts, five latest execution notes, and the current card acceptance data.
+- **Completion gate**: target exit success is recorded as `agent_succeeded`,
+  not card completion. Without an explicit verification command the card stays
+  `verification_pending`; absent or failed verification requeues the same
+  handoff so the next claim uses its bounded resume delta. Only a passed
+  verification can complete the handoff, archive the card, or trigger a
+  downstream workflow. Configured workflows are fully preflighted before agent
+  execution. A post-completion workflow-dispatch storage failure terminally
+  fails the current handoff instead of requeueing and duplicating agent work.
+- **Target policy**: command target YAML validates delivery, environment,
+  network, workspace, approval, verification, and writable-path declarations.
+  Supported values are applied to child processes as a machine-readable
+  adapter contract. Unsupported portable isolation claims fail instead of
+  being silently treated as enforced.
+- **Configuration resolution**: `kanterm-core` owns the versioned manifest
+  parser and resolves explicit CLI paths over `<repo>/.kanterm/config.yaml`,
+  then the OS-native global manifest. Relative file references are anchored to
+  their declaring manifest. Board database placement remains independent.
 - **Small workflow runner**: workflow YAML supports named steps and an
   `on_complete.send_handoff` action. Card completion can trigger the same runner,
   while `run-agent-task` claims an incoming handoff, executes a command target,
-  completes its card, and optionally triggers the next step.
+  verifies it, and only then optionally completes it and triggers the next step.
 - **Runtime hooks**: the Claude Code hook installer manages only Kanterm-owned
   `SessionStart`, `SessionEnd`, and `Stop` entries and preserves unrelated hooks.
 

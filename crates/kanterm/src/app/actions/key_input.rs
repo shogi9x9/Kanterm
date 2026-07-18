@@ -9,6 +9,8 @@ impl App {
         match &mut self.mode {
             Mode::Normal => self.on_normal_key(key)?,
             Mode::Detail { .. } => self.on_detail_key(key)?,
+            Mode::ExecutionPrompt { .. } => self.on_execution_prompt_key(key),
+            Mode::BoardExecutionPrompt { .. } => self.on_board_execution_prompt_key(key),
             Mode::AgentMetadata { .. } => self.on_agent_metadata_key(key)?,
             Mode::DependencyGraph { .. } => self.on_dependency_graph_key(key),
             Mode::ExecutionDashboard(_) => self.on_execution_dashboard_key(key)?,

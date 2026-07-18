@@ -1,4 +1,5 @@
 mod agent_task;
+mod config_discovery;
 mod hooks;
 mod roundtrip;
 mod watcher;
