@@ -7,7 +7,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.90"
 description = "Terminal kanban board with an optional MCP interface for automation"
@@ -16,7 +16,7 @@ readme = "README.md"
 repository = "https://github.com/shogi9x9/Kanterm"
 
 [workspace.dependencies]
-kanterm-core = { path = "crates/kanterm-core", version = "0.2.0" }
+kanterm-core = { path = "crates/kanterm-core", version = "0.3.0" }
 anyhow = "1"
 getrandom = "0.3.4"
 serde = { version = "1", features = ["derive"] }

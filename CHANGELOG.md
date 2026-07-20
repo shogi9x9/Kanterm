@@ -9,6 +9,8 @@ once public releases begin.
 
 ## Unreleased
 
+## 0.3.0 - 2026-07-20
+
 - Add a checksum-verified combined installer for `kanterm`, `kanterm-mcp`,
   `kanpty`, and `kanptyd`, with independent version selection and atomic binary
   replacement.
