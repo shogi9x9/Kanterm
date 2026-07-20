@@ -54,14 +54,14 @@ targets:
     type: command
     agent: b
     repo: /tmp
-    command: printf
-    args: HI_A_TO_B
+    command: sh
+    args: -c "cat >/dev/null; printf HI_A_TO_B"
   - name: c-command
     type: command
     agent: c
     repo: /tmp
-    command: printf
-    args: HI_B_TO_C
+    command: sh
+    args: -c "cat >/dev/null; printf HI_B_TO_C"
 "#,
     )
     .unwrap();
@@ -188,7 +188,7 @@ fn target_and_verification_failures_requeue_the_same_handoff_for_resume() {
     let targets_path = temp_path("kanterm-resume-targets", ".yaml");
     std::fs::write(
         &targets_path,
-        "targets:\n  - name: worker-command\n    type: command\n    agent: worker\n    repo: /tmp\n    command: false\n",
+        "targets:\n  - name: worker-command\n    type: command\n    agent: worker\n    repo: /tmp\n    command: sh\n    args: -c \"cat >/dev/null; exit 1\"\n",
     )
     .unwrap();
 
@@ -221,7 +221,7 @@ fn target_and_verification_failures_requeue_the_same_handoff_for_resume() {
 
     std::fs::write(
         &targets_path,
-        "targets:\n  - name: worker-command\n    type: command\n    agent: worker\n    repo: /tmp\n    command: printf\n    args: WORK_DONE\n",
+        "targets:\n  - name: worker-command\n    type: command\n    agent: worker\n    repo: /tmp\n    command: sh\n    args: -c \"cat >/dev/null; printf WORK_DONE\"\n",
     )
     .unwrap();
 
