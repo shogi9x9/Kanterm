@@ -16,6 +16,9 @@
   writable path policyを検証し、未対応のisolationを暗黙に保証しないように変更。
 - Cursor Agent CLIを非対話text modeで起動し、完全なwork packetをprompt引数として渡す
   first-classな`type: cursor` targetを追加。直接変更は明示的なno-prompt policy時だけ有効化。
+- `type: interactive`の`adapter: kanpty`を追加。完全なwork packetをprocess引数へ載せず、
+  stdin経由のbracketed pasteで稼働中Kanpty session IDまたはaliasへ配送。一時的なbridge
+  配送失敗時はhandoffをterminal failureにせずrequeue。
 - version付きglobal / project configの自動検出、`kanterm config`の
   path / show / init / edit / validate、headless runnerのtarget / workflow defaultを追加。
 - FLOW実行タブを削除し、Kanban、LIST、TIMELINEを`Tab` / `Shift+Tab`および

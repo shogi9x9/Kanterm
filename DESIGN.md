@@ -359,8 +359,11 @@ after fan-in.
   command targets or thin bridge scripts. Target YAML keeps routing reusable;
   named command and Cursor targets receive the versioned packet control
   contract with handoff data delimited as untrusted input. `type: cursor`
-  adapts that packet to Cursor Agent CLI's headless prompt argument, while
-  interactive tmux/zellij target shapes remain deferred.
+  adapts that packet to Cursor Agent CLI's headless prompt argument. The
+  `type: interactive`, `adapter: kanpty` bridge sends the same packet on stdin
+  to `kanpty paste --enter`, keeping packet text out of process arguments and
+  leaving PTY/session lifecycle ownership in Kanpty. tmux/zellij adapters remain
+  deferred.
 - **Agent work packets**: `kanterm-agent-work-packet/v1` is the shared,
   deterministic envelope for `orient`, `execute`, `verify`, and `resume`
   profiles. Board/card content is delimited as untrusted data. TUI clipboard
@@ -427,7 +430,7 @@ after fan-in.
 
 - Replace the current optimistic-conflict error with a richer TUI recovery
   prompt that can reload the external version or reopen the local edit.
-- Implement the reserved interactive target adapters for tmux/zellij without
+- Implement additional interactive target adapters for tmux/zellij without
   moving runtime-specific delivery state into `kanterm-core`.
 - Persist workflow-run and per-step state before adding retries, timeouts or
   cancellation; the current YAML runner deliberately stays a small handoff

@@ -1,6 +1,7 @@
 mod agent_task;
 mod config_discovery;
 mod hooks;
+mod kanpty_delivery;
 mod roundtrip;
 mod watcher;
 mod watcher_delivery;

@@ -17,6 +17,7 @@ pub(super) struct DraftTarget {
     pub(super) adapter: Option<String>,
     pub(super) session: Option<String>,
     pub(super) pane: Option<String>,
+    pub(super) socket: Option<PathBuf>,
     pub(super) delivery: Option<String>,
     pub(super) environment: Option<String>,
     pub(super) network: Option<String>,
@@ -45,6 +46,7 @@ impl DraftTarget {
             "adapter" => self.adapter = Some(value.to_string()),
             "session" => self.session = Some(value.to_string()),
             "pane" => self.pane = Some(value.to_string()),
+            "socket" => self.socket = Some(PathBuf::from(value)),
             "delivery" => self.delivery = Some(value.to_string()),
             "environment" => self.environment = Some(value.to_string()),
             "network" => self.network = Some(value.to_string()),
@@ -62,6 +64,14 @@ impl DraftTarget {
     pub(super) fn finish(self) -> Result<DeliveryTarget> {
         if self.name.trim().is_empty() {
             return Err(anyhow!("target name is required"));
+        }
+        if self.socket.is_some()
+            && (self.kind != "interactive" || self.adapter.as_deref() != Some("kanpty"))
+        {
+            return Err(anyhow!(
+                "target '{}' socket is supported only for type: interactive with adapter: kanpty",
+                self.name
+            ));
         }
         match self.kind.as_str() {
             "command" => self.command_target(),
@@ -152,12 +162,37 @@ impl DraftTarget {
                 self.name
             ));
         }
+        if self.adapter.as_deref() == Some("kanpty") {
+            if self.socket.as_ref().is_some_and(|path| !path.is_absolute()) {
+                return Err(anyhow!(
+                    "target '{}' adapter: kanpty socket must be an absolute path or omitted to use the default",
+                    self.name
+                ));
+            }
+            if self
+                .session
+                .as_deref()
+                .is_none_or(|value| value.trim().is_empty())
+            {
+                return Err(anyhow!(
+                    "target '{}' adapter: kanpty requires session",
+                    self.name
+                ));
+            }
+            if self.pane.is_some() {
+                return Err(anyhow!(
+                    "target '{}' adapter: kanpty addresses a session ID or alias and does not accept pane",
+                    self.name
+                ));
+            }
+        }
         Ok(DeliveryTarget::Interactive(InteractiveTarget {
             name: self.name,
             agent: self.agent,
             adapter: self.adapter,
             session: self.session,
             pane: self.pane,
+            socket: self.socket,
         }))
     }
 }

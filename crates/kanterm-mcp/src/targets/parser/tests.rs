@@ -57,6 +57,106 @@ targets:
 }
 
 #[test]
+fn parse_kanpty_target_with_stable_session_alias_and_socket() {
+    let config = parse_targets(
+        r#"
+targets:
+  - name: claude-interactive
+    type: interactive
+    agent: claude
+    adapter: kanpty
+    session: claude-board-a
+    socket: /run/user/1000/kanpty/daemon.sock
+"#,
+    )
+    .unwrap();
+    let DeliveryTarget::Interactive(target) = config.find("claude-interactive").unwrap() else {
+        panic!("expected interactive target");
+    };
+    assert_eq!(target.adapter.as_deref(), Some("kanpty"));
+    assert_eq!(target.session.as_deref(), Some("claude-board-a"));
+    assert_eq!(
+        target.socket.as_deref(),
+        Some(Path::new("/run/user/1000/kanpty/daemon.sock"))
+    );
+}
+
+#[test]
+fn parse_kanpty_target_requires_session_and_rejects_pane() {
+    let missing_session = parse_targets(
+        r#"
+targets:
+  - name: missing-session
+    type: interactive
+    adapter: kanpty
+"#,
+    )
+    .unwrap_err();
+    assert!(missing_session.to_string().contains("requires session"));
+
+    let pane = parse_targets(
+        r#"
+targets:
+  - name: pane-address
+    type: interactive
+    adapter: kanpty
+    session: claude-board-a
+    pane: 0
+"#,
+    )
+    .unwrap_err();
+    assert!(pane.to_string().contains("does not accept pane"));
+
+    let relative_socket = parse_targets(
+        r#"
+targets:
+  - name: relative-socket
+    type: interactive
+    adapter: kanpty
+    session: claude-board-a
+    socket: run/kanpty.sock
+"#,
+    )
+    .unwrap_err();
+    assert!(relative_socket
+        .to_string()
+        .contains("must be an absolute path"));
+}
+
+#[test]
+fn parse_rejects_kanpty_socket_on_non_kanpty_targets() {
+    for config in [
+        r#"
+targets:
+  - name: command-with-socket
+    type: command
+    command: agent-cli
+    socket: /run/kanpty.sock
+"#,
+        r#"
+targets:
+  - name: cursor-with-socket
+    type: cursor
+    repo: /work/project
+    socket: /run/kanpty.sock
+"#,
+        r#"
+targets:
+  - name: tmux-with-socket
+    type: interactive
+    adapter: tmux
+    session: worker
+    socket: /run/kanpty.sock
+"#,
+    ] {
+        let err = parse_targets(config).unwrap_err();
+        assert!(err
+            .to_string()
+            .contains("supported only for type: interactive with adapter: kanpty"));
+    }
+}
+
+#[test]
 fn parse_rejects_unterminated_args_quote() {
     let err = parse_targets(
         r#"

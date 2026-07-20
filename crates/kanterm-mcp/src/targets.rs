@@ -37,6 +37,7 @@ pub(crate) struct InteractiveTarget {
     pub(crate) adapter: Option<String>,
     pub(crate) session: Option<String>,
     pub(crate) pane: Option<String>,
+    pub(crate) socket: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

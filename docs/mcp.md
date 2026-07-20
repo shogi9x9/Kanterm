@@ -167,12 +167,13 @@ targets:
     verification: command
     writable_paths: src tests
 
-  - name: bff-session
+  - name: claude-interactive
     type: interactive
-    agent: bff-agent
-    adapter: tmux
-    session: bff
-    pane: 0
+    agent: claude
+    adapter: kanpty
+    session: claude-board-a
+    # Optional; omit this to use Kanpty's default socket.
+    socket: /path/to/kanpty/daemon.sock
 ```
 
 Cursor Agent CLI has a first-class headless preset, so its prompt transport and
@@ -220,10 +221,18 @@ kanterm-mcp watch-handoffs \
 versioned work packet to stdin. `type: cursor` starts the Cursor Agent CLI
 preset and passes the same packet as its final argument. Handoff subject/body
 are delimited as untrusted task data under the packet control contract.
-`type: interactive` is a
-reserved target shape for tmux/zellij session adapters; it is validated by
-config parsing but watcher delivery returns an explicit not-implemented error
-until those adapters are added.
+`type: interactive`, `adapter: kanpty` starts the short-lived `kanpty` client
+and writes the packet to `kanpty paste --enter SESSION` over stdin. `session`
+may be an immutable Kanpty session ID or a stable alias. Packet text is not
+placed in process arguments. An explicit `socket` must be absolute; omit it to
+use Kanpty's platform default. Kanpty protocol v2 or newer is required for the
+stdin paste and alias contract. `kanptyd` and the referenced live session must
+already exist; Kanterm owns handoff delivery, while Kanpty owns daemon and PTY
+lifecycle. Successful delivery leaves the handoff claimed until the receiving
+agent completes it. A bridge delivery failure requeues the same handoff so a
+supervised watcher can retry after Kanpty recovers; synchronous command-target
+failures remain terminal. tmux/zellij target shapes remain reserved and return
+an unsupported-adapter error during delivery.
 
 Command targets also declare a machine-readable policy. `delivery` currently
 supports `packet`; `environment` is `inherit` or `clean`; `approval` is

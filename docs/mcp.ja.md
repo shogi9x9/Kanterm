@@ -160,12 +160,13 @@ targets:
     verification: command
     writable_paths: src tests
 
-  - name: bff-session
+  - name: claude-interactive
     type: interactive
-    agent: bff-agent
-    adapter: tmux
-    session: bff
-    pane: 0
+    agent: claude
+    adapter: kanpty
+    session: claude-board-a
+    # 省略時はKanptyのdefault socketを利用
+    socket: /path/to/kanpty/daemon.sock
 ```
 
 Cursor Agent CLIにはfirst-classなheadless presetがあり、prompt配送方法や必須の
@@ -209,9 +210,16 @@ kanterm-mcp watch-handoffs \
 `type: command`はtargetの`repo`で`command`と`args`を起動し、version付きwork packetを
 stdinへ渡します。`type: cursor`はCursor Agent CLI presetを起動し、同じpacketを最後の
 引数で渡します。handoffのsubject / bodyはpacket control contractの下でuntrusted task data
-としてdelimiter分離されます。`type: interactive`はtmux / zellij session adapter向けの予約済みtarget形状です。
-configとしては検証されますが、adapter実装が入るまではwatcher deliveryは明示的な
-未実装エラーを返します。
+としてdelimiter分離されます。`type: interactive`の`adapter: kanpty`は短命な`kanpty`
+clientを起動し、packetをstdinから`kanpty paste --enter SESSION`へ渡します。`session`には
+不変Kanpty session IDまたはstable aliasを指定できます。packet本文はprocess引数へ載りません。
+明示する`socket`はabsolute path必須で、省略時はKanptyのplatform defaultを利用します。
+stdin paste / alias契約にはKanpty protocol v2以降が必要です。`kanptyd`と参照先live sessionは
+事前に起動しておく必要があります。Kantermはhandoff配送、
+Kanptyはdaemon / PTY lifecycleを所有します。配送成功後もhandoffはclaimedのままで、受信agentが
+完了します。bridge配送失敗時は同じhandoffをrequeueし、監視下watcherがKanpty復旧後にretry
+できるようにします。同期command targetの失敗は従来どおりterminalです。tmux / zellij target
+shapeは予約済みですが、配送時はunsupported adapter errorを返します。
 
 command targetはmachine-readable policyも宣言します。`delivery`は現在`packet`、
 `environment`は`inherit` / `clean`、`approval`は`external` / `never` / `on-request`、

@@ -120,8 +120,8 @@ also support sent and closed handoffs.
 `kanterm-mcp watch-handoffs` can run as a lightweight watcher/bridge for
 delivering durable handoffs into another runtime, and `kanterm-mcp run-workflow`
 can turn a small workflow YAML step completion into a cross-repo handoff.
-Reusable target configs let workflows route to command targets now, with
-interactive session targets reserved for terminal adapters.
+Reusable target configs let workflows route to command targets and paste work
+packets into long-lived interactive sessions through the Kanpty adapter.
 Automated command runs retain the exact packet and digest for each attempt,
 switch retries to bounded resume packets, and require an explicit successful
 verification command before completing a card or triggering its next workflow.

@@ -111,8 +111,8 @@ handoff送信元は`get_handoff`で完了結果を取得でき、一覧では送
 `kanterm-mcp watch-handoffs` は、永続 handoff を別 runtime に配送する軽量 watcher /
 bridge として動かせます。`kanterm-mcp run-workflow` は、小さな workflow YAML の
 step 完了を cross-repo handoff に変換できます。再利用可能な target config により、
-現時点では command target へ配送でき、interactive session target は terminal
-adapter 用に予約されています。
+command targetへの配送に加え、Kanpty adapter経由で長寿命interactive sessionへ
+work packetをpasteできます。
 command自動実行は試行ごとの完全なpacketとdigestを保存し、retryではbounded resume
 packetへ切り替えます。カード完了と次workflowのtriggerには明示的なverification
 commandの成功が必要です。

@@ -24,6 +24,10 @@ once public releases begin.
 - Add a first-class `type: cursor` target that invokes Cursor Agent CLI in
   non-interactive text mode, passes the exact work packet as its prompt
   argument, and enables direct changes only under an explicit no-prompt policy.
+- Add a `type: interactive`, `adapter: kanpty` target that sends the exact work
+  packet to a live Kanpty session ID or alias through stdin-backed bracketed
+  paste, without exposing packet text in process arguments. Transient bridge
+  delivery failures requeue the handoff instead of terminally failing it.
 - Add versioned global/project config discovery, `kanterm config`
   path/show/init/edit/validate commands, and automatic target/workflow defaults
   for headless runners.
