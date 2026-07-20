@@ -37,6 +37,11 @@ jobs:
       - name: Test
         run: cargo test --workspace --all-targets
 
+      - name: Installer
+        run: |
+          sh -n install.sh scripts/test-install.sh
+          scripts/test-install.sh
+
       - name: Package check
         run: cargo package -p kanterm-core
 
@@ -89,6 +94,9 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
       - name: Download artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
@@ -98,14 +106,15 @@ jobs:
       - name: Generate checksums
         run: |
           cd dist
-          sha256sum *.tar.gz > SHA256SUMS
+          cp ../install.sh install.sh
+          sha256sum *.tar.gz install.sh > SHA256SUMS
 
       - name: Create release and upload assets
         env:
           GH_TOKEN: ${{ github.token }}
           TAG_NAME: ${{ github.ref_name }}
         run: |
-          gh release create "$TAG_NAME" dist/*.tar.gz dist/SHA256SUMS \
+          gh release create "$TAG_NAME" dist/*.tar.gz dist/install.sh dist/SHA256SUMS \
             --repo "$GITHUB_REPOSITORY" \
             --title "$TAG_NAME" \
             --generate-notes

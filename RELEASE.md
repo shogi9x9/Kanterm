@@ -23,6 +23,8 @@
 cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets
+sh -n install.sh scripts/test-install.sh
+scripts/test-install.sh
 cargo build --release --workspace
 cargo package --list -p kanterm-core
 cargo package --list -p kanterm
@@ -80,6 +82,7 @@ The release workflow uploads:
 
 - `kanterm-linux-x86_64.tar.gz`
 - `kanterm-macos-arm64.tar.gz`
+- `install.sh`
 - `SHA256SUMS`
 
 After the workflow completes, verify the published assets:
@@ -98,6 +101,10 @@ Each platform archive should contain:
 - `LICENSE`
 - `kanterm`
 - `kanterm-mcp`
+
+`install.sh` should install `kanterm`, `kanterm-mcp`, `kanpty`, and `kanptyd`
+from the selected releases, and must verify both archives before replacing any
+existing binary. Its fixture test must remain network-independent.
 
 Users install by unpacking the archive and copying `kanterm` and `kanterm-mcp`
 to a directory on `PATH`.

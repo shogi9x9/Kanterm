@@ -234,6 +234,11 @@ supervised watcher can retry after Kanpty recovers; synchronous command-target
 failures remain terminal. tmux/zellij target shapes remain reserved and return
 an unsupported-adapter error during delivery.
 
+The combined installer documented in the README installs `kanpty` and
+`kanptyd` alongside the Kanterm binaries. It intentionally does not start the
+daemon or register an operating-system service; the runtime lifecycle remains
+an explicit user choice.
+
 Command targets also declare a machine-readable policy. `delivery` currently
 supports `packet`; `environment` is `inherit` or `clean`; `approval` is
 `external`, `never`, or `on-request`; `verification` is `command` or `none`;

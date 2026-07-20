@@ -6,6 +6,8 @@
 
 ## Unreleased
 
+- `kanterm`、`kanterm-mcp`、`kanpty`、`kanptyd`をまとめて導入するchecksum検証付き
+  installerを追加。個別version指定とbinary単位のatomicな置換に対応。
 - `orient`、`execute`、`verify`、bounded `resume` profileを共有する
   `kanterm-agent-work-packet/v1`と、board / card packetをcopy前に確認するTUI previewを追加。
 - 各自動試行の完全なpacket、digest、target、process結果、output、errorを永続化し

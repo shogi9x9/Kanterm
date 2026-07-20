@@ -221,6 +221,10 @@ Kanptyはdaemon / PTY lifecycleを所有します。配送成功後もhandoffは
 できるようにします。同期command targetの失敗は従来どおりterminalです。tmux / zellij target
 shapeは予約済みですが、配送時はunsupported adapter errorを返します。
 
+READMEに記載した統合installerは、Kanterm binaryと一緒に`kanpty`と`kanptyd`も配置します。
+daemonの起動やOS service登録は意図的に行わず、runtime lifecycleを明示的に選べる状態を
+維持します。
+
 command targetはmachine-readable policyも宣言します。`delivery`は現在`packet`、
 `environment`は`inherit` / `clean`、`approval`は`external` / `never` / `on-request`、
 `verification`は`command` / `none`です。`writable_paths`は`repo`内に限定され、相対pathは

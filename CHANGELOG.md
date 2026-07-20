@@ -9,6 +9,9 @@ once public releases begin.
 
 ## Unreleased
 
+- Add a checksum-verified combined installer for `kanterm`, `kanterm-mcp`,
+  `kanpty`, and `kanptyd`, with independent version selection and atomic binary
+  replacement.
 - Add `kanterm-agent-work-packet/v1` with shared `orient`, `execute`, `verify`,
   and bounded `resume` profiles, plus TUI preview-before-copy for board and card
   packets.

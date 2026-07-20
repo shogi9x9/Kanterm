@@ -42,7 +42,33 @@ and see each other's writes live.
 
 ## Install
 
-Download the archive for your platform from the
+The combined installer downloads the matching Kanterm and Kanpty release
+archives, verifies both against their published SHA-256 checksums, and installs
+`kanterm`, `kanterm-mcp`, `kanpty`, and `kanptyd` together:
+
+```sh
+curl --proto '=https' --tlsv1.2 -fsSLo /tmp/kanterm-install.sh \
+  https://raw.githubusercontent.com/shogi9x9/Kanterm/main/install.sh
+sh /tmp/kanterm-install.sh
+```
+
+The default destination is `$HOME/.local/bin`. Pass `--install-dir PATH` to
+change it. Kanterm follows the latest release by default; Kanpty is pinned to a
+protocol-v2-compatible release. Both can be selected explicitly:
+
+```sh
+sh /tmp/kanterm-install.sh \
+  --kanterm-version v0.2.0 \
+  --kanpty-version v0.2.0 \
+  --install-dir /path/to/bin
+```
+
+The installer places binaries only. It does not start `kanptyd` or register a
+background service, because daemon lifecycle and service managers are
+machine-specific and should remain an explicit user choice.
+
+For a manual Kanterm-only installation, download the archive for your platform
+from the
 [latest GitHub Release](https://github.com/shogi9x9/Kanterm/releases/latest):
 
 - `kanterm-linux-x86_64.tar.gz`
