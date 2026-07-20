@@ -110,8 +110,46 @@ a Markdown inbox file under the target repo, and
 `scripts/kanterm-bridge-agent-command.sh` runs an arbitrary command in the target
 repo with a formatted handoff prompt on stdin.
 
-For repeatable routing, put delivery targets in a small YAML config and pass
-`--targets PATH --target NAME` instead of repeating bridge arguments:
+### Configuration discovery and management
+
+Kanterm can keep reusable target and workflow paths in a versioned manifest.
+Use the OS-native global config directory or a repository-local manifest:
+
+- Global: the path printed by `kanterm config path --global` (on macOS this is
+  `~/Library/Application Support/Kanterm/config.yaml`)
+- Project: `<repo>/.kanterm/config.yaml`
+
+`KANTERM_CONFIG_DIR` overrides the global directory. Resolution precedence is
+an explicit CLI flag, then project config, then global config. Relative paths
+are resolved from the manifest that declares them.
+
+```yaml
+version: 1
+targets: targets.yaml
+workflow: workflows/default.yaml
+```
+
+The lifecycle commands do not open the board database or TUI:
+
+```sh
+kanterm config path
+kanterm config init --project
+kanterm config show --resolved
+kanterm config edit --project
+kanterm config validate
+```
+
+`init` never overwrites an existing manifest. `edit` uses `VISUAL`, then
+`EDITOR`, and validates the edited file. Keep credentials out of these YAML
+files; they contain paths and runtime policy, not secrets.
+
+`run-agent-task`, `watch-handoffs`, and `run-workflow` automatically use the
+resolved target/workflow paths when their corresponding flags are omitted.
+Explicit `--targets` and `--workflow` values remain the highest-precedence
+override.
+
+For repeatable routing, put delivery targets in a small YAML file and select a
+named target instead of repeating bridge arguments:
 
 ```yaml
 targets:
@@ -119,16 +157,57 @@ targets:
     type: command
     agent: bff-agent
     repo: /path/to/downstream-repo
-    command: claude
+    command: agent-cli
     args: -p
+    delivery: packet
+    environment: clean
+    network: inherit
+    workspace: repo-write
+    approval: on-request
+    verification: command
+    writable_paths: src tests
 
-  - name: bff-session
+  - name: claude-interactive
     type: interactive
-    agent: bff-agent
-    adapter: tmux
-    session: bff
-    pane: 0
+    agent: claude
+    adapter: kanpty
+    session: claude-board-a
+    # Optional; omit this to use Kanpty's default socket.
+    socket: /path/to/kanpty/daemon.sock
 ```
+
+Cursor Agent CLI has a first-class headless preset, so its prompt transport and
+required non-interactive flags do not need to be repeated manually:
+
+```yaml
+targets:
+  - name: cursor-worker
+    type: cursor
+    agent: cursor
+    repo: /path/to/project
+    model: composer-2.5
+    environment: inherit
+    network: inherit
+    workspace: repo-write
+    approval: never
+    verification: command
+    writable_paths: src tests
+```
+
+`type: cursor` expands to `cursor-agent --print --output-format text --trust
+--workspace <repo>`. It passes the exact work packet as the final prompt
+argument because Cursor CLI does not use the generic target's stdin contract.
+`approval: external` omits `--force`, leaving changes proposed for an external
+actor; the explicit `approval: never` no-prompt policy adds `--force` for direct
+headless changes. `approval: on-request` is rejected because it can block an
+unattended process. Cursor targets require `environment: inherit` so an existing
+login or `CURSOR_API_KEY` remains available. `model` is optional and maps to
+`--model`. Authentication remains the operator's responsibility; Kanterm never
+stores the Cursor credential. `cursor-agent` must already be on `PATH` and
+authenticated with `cursor-agent login` or `CURSOR_API_KEY`. Because Cursor CLI
+accepts its prompt as an argument rather than stdin, the packet can be visible
+to same-host process inspection while the command is running; do not put secrets
+in board or card text.
 
 ```sh
 kanterm-mcp watch-handoffs \
@@ -138,11 +217,41 @@ kanterm-mcp watch-handoffs \
   --target bff-command
 ```
 
-`type: command` is implemented now: Kanterm starts `command` with `args` in the
-target `repo` and writes a formatted handoff prompt to stdin. `type:
-interactive` is a reserved target shape for tmux/zellij session adapters; it is
-validated by config parsing but watcher delivery returns an explicit
-not-implemented error until those adapters are added.
+`type: command` starts `command` with `args` in the target `repo` and writes a
+versioned work packet to stdin. `type: cursor` starts the Cursor Agent CLI
+preset and passes the same packet as its final argument. Handoff subject/body
+are delimited as untrusted task data under the packet control contract.
+`type: interactive`, `adapter: kanpty` starts the short-lived `kanpty` client
+and writes the packet to `kanpty paste --enter SESSION` over stdin. `session`
+may be an immutable Kanpty session ID or a stable alias. Packet text is not
+placed in process arguments. An explicit `socket` must be absolute; omit it to
+use Kanpty's platform default. Kanpty protocol v2 or newer is required for the
+stdin paste and alias contract. `kanptyd` and the referenced live session must
+already exist; Kanterm owns handoff delivery, while Kanpty owns daemon and PTY
+lifecycle. Successful delivery leaves the handoff claimed until the receiving
+agent completes it. A bridge delivery failure requeues the same handoff so a
+supervised watcher can retry after Kanpty recovers; synchronous command-target
+failures remain terminal. tmux/zellij target shapes remain reserved and return
+an unsupported-adapter error during delivery.
+
+The combined installer documented in the README installs `kanpty` and
+`kanptyd` alongside the Kanterm binaries. It intentionally does not start the
+daemon or register an operating-system service; the runtime lifecycle remains
+an explicit user choice.
+
+Command targets also declare a machine-readable policy. `delivery` currently
+supports `packet`; `environment` is `inherit` or `clean`; `approval` is
+`external`, `never`, or `on-request`; `verification` is `command` or `none`;
+and `writable_paths` must stay within `repo` (relative entries are resolved from
+it). Parent traversal is rejected, and existing path ancestors are checked
+after symlink resolution. The portable command adapter currently supports only `network: inherit`
+and `workspace: repo-write`; stronger values such as network denial or a
+read-only workspace fail config parsing instead of being treated as enforced.
+Supported policy is passed to child processes through `KANTERM_DELIVERY_MODE`,
+`KANTERM_NETWORK_POLICY`, `KANTERM_WORKSPACE_POLICY`,
+`KANTERM_APPROVAL_POLICY`, and `KANTERM_WRITABLE_PATHS`. These variables are an
+adapter contract; operating-system sandboxing still requires a target command
+that implements it.
 
 For cross-repo orchestration, `kanterm-mcp run-workflow` can turn a workflow step
 completion into a durable handoff. This is intentionally a small YAML subset: it
@@ -201,10 +310,10 @@ duplicating those values.
 
 To let the receiving side continue the chain without an outer script manually
 calling `update_card`, use `kanterm-mcp run-agent-task`. It claims one incoming
-handoff, runs the configured command target, completes the specified Kanterm
-card with the command output as the completion note, and optionally triggers the
-next workflow step. The same command output is stored as the incoming handoff's
-result for the sender to retrieve:
+handoff and runs the configured command target. It completes the specified
+Kanterm card only after an explicit verification command succeeds, and optionally
+triggers the next workflow step. The same command output is stored as the
+incoming handoff's result for the sender to retrieve:
 
 ```sh
 kanterm-mcp run-agent-task \
@@ -214,15 +323,34 @@ kanterm-mcp run-agent-task \
   --target b-command \
   --board ms \
   --card MS-2 \
+  --verify-command cargo \
+  --verify-arg test \
+  --verify-arg --workspace \
   --workflow ./kanterm.workflow.yaml \
   --workflow-targets ./kanterm.targets.yaml \
   --workflow-step b-to-c \
   --from-agent b
 ```
 
-This runner is the headless command-agent loop: watcher-style claim semantics on
-the incoming handoff, command-target execution for the receiving agent, Kanterm
-card completion, then workflow-triggered handoff to the next agent.
+The runner sends `kanterm-agent-work-packet/v1` on stdin. The first attempt uses
+the `execute` profile; retries for the same handoff use a bounded `resume`
+profile containing the original packet digest, at most three prior outcomes,
+and at most five execution notes. Migration 0021 stores the exact packet,
+profile, SHA-256 digest, target, process outcome, output, and error for every
+attempt.
+
+Target exit code and card completion are separate. Without `--verify-command`,
+the card remains `verification_pending` and the handoff is requeued. A failing
+verification command records `last_verification`, requeues the same handoff,
+keeps the card resumable as `verification_failed`, and exits unsuccessfully
+without triggering the workflow. The next `run-agent-task` invocation claims
+that handoff again and sends a bounded `resume` packet. Only a passing
+verification command marks the card and handoff complete and permits the next
+workflow step. When a workflow is configured, its file, step, target, and
+rendered handoff are preflighted before the agent command runs. A later
+workflow-dispatch storage failure does not requeue completed agent work: the
+card stays archived, the current handoff becomes `failed`, and the CLI reports
+that the workflow must be run separately after the failure is corrected.
 
 For Claude Code, Kanterm can install project-local hooks in
 `.claude/settings.local.json`:

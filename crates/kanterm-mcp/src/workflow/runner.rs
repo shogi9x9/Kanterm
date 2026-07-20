@@ -13,6 +13,26 @@ pub(crate) fn run(store: &mut Store, args: RunWorkflowArgs) -> Result<()> {
 }
 
 pub(crate) fn run_summary(store: &mut Store, args: RunWorkflowArgs) -> Result<String> {
+    let prepared = prepare(store, args)?;
+    run_prepared(store, prepared)
+}
+
+pub(crate) struct PreparedWorkflow {
+    workflow_name: String,
+    step_name: String,
+    action: Option<PreparedAction>,
+}
+
+struct PreparedAction {
+    from_agent: String,
+    to_agent: String,
+    board_id: Option<String>,
+    card_key: Option<String>,
+    subject: String,
+    body: String,
+}
+
+pub(crate) fn prepare(store: &Store, args: RunWorkflowArgs) -> Result<PreparedWorkflow> {
     let source = fs::read_to_string(&args.workflow)
         .with_context(|| format!("reading workflow {}", args.workflow.display()))?;
     let workflow = parse_workflow(&source)?;
@@ -21,10 +41,11 @@ pub(crate) fn run_summary(store: &mut Store, args: RunWorkflowArgs) -> Result<St
     }
     let step = selected_step(&workflow, args.step.as_deref())?;
     let Some(WorkflowAction::SendHandoff(rule)) = step.on_complete.as_ref() else {
-        return Ok(format!(
-            "workflow: {}\nstep: {}\naction: none",
-            workflow.name, step.name
-        ));
+        return Ok(PreparedWorkflow {
+            workflow_name: workflow.name.clone(),
+            step_name: step.name.clone(),
+            action: None,
+        });
     };
     let target_config = args
         .targets
@@ -62,17 +83,38 @@ pub(crate) fn run_summary(store: &mut Store, args: RunWorkflowArgs) -> Result<St
         to_agent.as_str(),
         repo.as_deref(),
     );
+    Ok(PreparedWorkflow {
+        workflow_name: workflow.name.clone(),
+        step_name: step.name.clone(),
+        action: Some(PreparedAction {
+            from_agent: args.from_agent,
+            to_agent,
+            board_id,
+            card_key: args.card,
+            subject,
+            body,
+        }),
+    })
+}
+
+pub(crate) fn run_prepared(store: &mut Store, prepared: PreparedWorkflow) -> Result<String> {
+    let Some(action) = prepared.action else {
+        return Ok(format!(
+            "workflow: {}\nstep: {}\naction: none",
+            prepared.workflow_name, prepared.step_name
+        ));
+    };
     let handoff = store.create_handoff(&HandoffDraft {
-        from_agent: args.from_agent,
-        to_agent,
-        board_id,
-        card_key: args.card,
-        subject,
-        body,
+        from_agent: action.from_agent,
+        to_agent: action.to_agent,
+        board_id: action.board_id,
+        card_key: action.card_key,
+        subject: action.subject,
+        body: action.body,
     })?;
     Ok(format!(
         "workflow: {}\nstep: {}\naction: send_handoff\nhandoff_id: {}\nto_agent: {}",
-        workflow.name, step.name, handoff.id, handoff.to_agent
+        prepared.workflow_name, prepared.step_name, handoff.id, handoff.to_agent
     ))
 }
 

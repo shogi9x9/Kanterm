@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Context, Result};
+use kanterm_core::resolve_config;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
@@ -17,6 +18,8 @@ pub(crate) struct AgentTaskArgs {
     pub(crate) card: String,
     pub(crate) lease_minutes: Option<i64>,
     pub(crate) complete_note: Option<String>,
+    pub(crate) verification_command: Option<String>,
+    pub(crate) verification_args: Vec<String>,
     pub(crate) workflow: Option<PathBuf>,
     pub(crate) workflow_step: Option<String>,
     pub(crate) workflow_targets: Option<PathBuf>,
@@ -24,7 +27,7 @@ pub(crate) struct AgentTaskArgs {
 }
 
 pub(crate) fn usage() -> &'static str {
-    "usage: kanterm-mcp run-agent-task --for-agent ID --claim-token TOKEN --targets PATH --target NAME --board SLUG --card KEY [--lease-minutes MIN] [--complete-note TEXT] [--workflow PATH --workflow-step NAME --workflow-targets PATH --from-agent ID]"
+    "usage: kanterm-mcp run-agent-task --for-agent ID --claim-token TOKEN [--targets PATH] --target NAME --board SLUG --card KEY [--lease-minutes MIN] [--complete-note TEXT] [--verify-command COMMAND [--verify-arg ARG]...] [--workflow PATH --workflow-step NAME --workflow-targets PATH --from-agent ID]"
 }
 
 pub(crate) fn parse(args: &[String]) -> Result<AgentTaskCommand> {
@@ -72,6 +75,17 @@ pub(crate) fn parse(args: &[String]) -> Result<AgentTaskCommand> {
                 parsed.complete_note =
                     Some(required_value(args, i, "--complete-note")?.to_string());
             }
+            "--verify-command" => {
+                i += 1;
+                parsed.verification_command =
+                    Some(required_value(args, i, "--verify-command")?.to_string());
+            }
+            "--verify-arg" => {
+                i += 1;
+                parsed
+                    .verification_args
+                    .push(required_value(args, i, "--verify-arg")?.to_string());
+            }
             "--workflow" => {
                 i += 1;
                 parsed.workflow = Some(PathBuf::from(required_value(args, i, "--workflow")?));
@@ -110,6 +124,8 @@ struct PartialArgs {
     card: Option<String>,
     lease_minutes: Option<i64>,
     complete_note: Option<String>,
+    verification_command: Option<String>,
+    verification_args: Vec<String>,
     workflow: Option<PathBuf>,
     workflow_step: Option<String>,
     workflow_targets: Option<PathBuf>,
@@ -118,20 +134,40 @@ struct PartialArgs {
 
 impl PartialArgs {
     fn finish(self) -> Result<AgentTaskArgs> {
+        if self.verification_command.is_none() && !self.verification_args.is_empty() {
+            return Err(anyhow!("--verify-arg requires --verify-command"));
+        }
+        let for_agent = required_option(self.for_agent, "--for-agent")?;
+        let claim_token = required_option(self.claim_token, "--claim-token")?;
+        let target = required_option(self.target, "--target")?;
+        let board = required_option(self.board, "--board")?;
+        let card = required_option(self.card, "--card")?;
+        let cwd = std::env::current_dir().context("determining current directory")?;
+        let resolved = resolve_config(&cwd, self.targets, self.workflow)?;
+        let targets = resolved.targets.ok_or_else(|| {
+            anyhow!(
+                "--targets is required because no targets file is configured; run `kanterm config init --project` or pass --targets PATH"
+            )
+        })?;
+        let workflow_targets = match self.workflow_targets {
+            Some(path) if path.is_absolute() => Some(path),
+            Some(path) => Some(cwd.join(path)),
+            None => Some(targets.path.clone()),
+        };
         Ok(AgentTaskArgs {
-            for_agent: required_option(self.for_agent, "--for-agent")?,
-            claim_token: required_option(self.claim_token, "--claim-token")?,
-            targets: self
-                .targets
-                .ok_or_else(|| anyhow!("--targets is required"))?,
-            target: required_option(self.target, "--target")?,
-            board: required_option(self.board, "--board")?,
-            card: required_option(self.card, "--card")?,
+            for_agent,
+            claim_token,
+            targets: targets.path,
+            target,
+            board,
+            card,
             lease_minutes: self.lease_minutes,
             complete_note: self.complete_note,
-            workflow: self.workflow,
+            verification_command: self.verification_command,
+            verification_args: self.verification_args,
+            workflow: resolved.workflow.map(|value| value.path),
             workflow_step: self.workflow_step,
-            workflow_targets: self.workflow_targets,
+            workflow_targets,
             from_agent: self.from_agent,
         })
     }
@@ -179,6 +215,10 @@ mod tests {
             "board",
             "--card",
             "B-1",
+            "--verify-command",
+            "cargo",
+            "--verify-arg",
+            "test",
             "--workflow",
             "workflow.yaml",
             "--workflow-step",
@@ -193,5 +233,7 @@ mod tests {
         };
         assert_eq!(parsed.workflow_step.as_deref(), Some("b-to-c"));
         assert_eq!(parsed.from_agent.as_deref(), Some("b"));
+        assert_eq!(parsed.verification_command.as_deref(), Some("cargo"));
+        assert_eq!(parsed.verification_args, vec!["test"]);
     }
 }

@@ -25,6 +25,13 @@ impl Store {
         read::load_dependencies_for_downstream(&self.conn, board_id, &card.id)
     }
 
+    pub fn card_upstream_cards(&self, board_id: &str, key: &str) -> Result<Vec<crate::Card>> {
+        let card = self
+            .card_by_key(board_id, key)?
+            .ok_or_else(|| anyhow!("no card with key '{key}'"))?;
+        read::load_upstream_cards_for_card(&self.conn, board_id, &card.id)
+    }
+
     pub fn set_card_dependencies(
         &mut self,
         board_id: &str,

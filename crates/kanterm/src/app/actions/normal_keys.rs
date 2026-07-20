@@ -49,6 +49,7 @@ impl App {
                     back: ViewBack::Normal,
                 };
             }
+            KeyCode::Char('C') => self.open_board_execution_prompt(ViewBack::Normal),
             KeyCode::Char('i') => {
                 self.mode = Mode::Input {
                     kind: InputKind::EditBoardContext,

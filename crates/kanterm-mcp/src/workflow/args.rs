@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use kanterm_core::resolve_config;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
@@ -19,7 +20,7 @@ pub(crate) struct RunWorkflowArgs {
 }
 
 pub(crate) fn usage() -> &'static str {
-    "usage: kanterm-mcp run-workflow --workflow PATH --from-agent ID [--event complete] [--step NAME] [--board SLUG] [--card KEY] [--targets PATH]"
+    "usage: kanterm-mcp run-workflow [--workflow PATH] --from-agent ID [--event complete] [--step NAME] [--board SLUG] [--card KEY] [--targets PATH]"
 }
 
 pub(crate) fn parse(args: &[String]) -> Result<WorkflowCommand> {
@@ -68,14 +69,22 @@ pub(crate) fn parse(args: &[String]) -> Result<WorkflowCommand> {
         }
         i += 1;
     }
+    let cwd = std::env::current_dir()
+        .map_err(|error| anyhow!("determining current directory: {error}"))?;
+    let resolved = resolve_config(&cwd, targets, workflow)?;
+    let workflow = resolved.workflow.ok_or_else(|| {
+        anyhow!(
+            "--workflow is required because no workflow file is configured; run `kanterm config init --project` or pass --workflow PATH"
+        )
+    })?;
     Ok(WorkflowCommand::Run(RunWorkflowArgs {
-        workflow: workflow.ok_or_else(|| anyhow!("--workflow is required"))?,
+        workflow: workflow.path,
         event,
         step,
         from_agent: required_option(from_agent, "--from-agent")?,
         board,
         card,
-        targets,
+        targets: resolved.targets.map(|value| value.path),
     }))
 }
 

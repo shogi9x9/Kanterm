@@ -15,6 +15,7 @@ mod labels;
 mod memory;
 mod navigation;
 mod normal_keys;
+mod prompt;
 mod runtime;
 mod selection;
 mod state;

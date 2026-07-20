@@ -35,6 +35,11 @@ jobs:
       - name: Test
         run: cargo test --workspace --all-targets
 
+      - name: Installer
+        run: |
+          sh -n install.sh scripts/test-install.sh
+          scripts/test-install.sh
+
       - name: Release build
         run: cargo build --release --workspace
 

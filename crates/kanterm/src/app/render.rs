@@ -26,6 +26,9 @@ impl App {
                 Mode::BoardSwitcher { cursor, .. } => self.draw_board_switcher(f, *cursor),
                 Mode::BoardArchive { board_name, .. } => self.draw_board_archive(f, board_name),
                 Mode::ArchiveConfirm { key, .. } => self.draw_archive_confirm(f, key),
+                Mode::BoardExecutionPrompt { prompt, scroll, .. } => {
+                    self.draw_board_execution_prompt(f, prompt, *scroll)
+                }
                 _ => {}
             }
             return;
@@ -38,6 +41,20 @@ impl App {
         {
             self.draw_execution_layer(f, status_area, state);
             self.draw_detail(f, key, *scroll);
+            return;
+        }
+
+        if let (
+            Mode::ExecutionPrompt {
+                key,
+                prompt,
+                scroll,
+            },
+            Some(state),
+        ) = (&self.mode, self.detail_return_dashboard)
+        {
+            self.draw_execution_layer(f, status_area, state);
+            self.draw_execution_prompt(f, key, prompt, *scroll);
             return;
         }
 
@@ -63,6 +80,14 @@ impl App {
 
         match &self.mode {
             Mode::Detail { key, scroll } => self.draw_detail(f, key, *scroll),
+            Mode::ExecutionPrompt {
+                key,
+                prompt,
+                scroll,
+            } => self.draw_execution_prompt(f, key, prompt, *scroll),
+            Mode::BoardExecutionPrompt { prompt, scroll, .. } => {
+                self.draw_board_execution_prompt(f, prompt, *scroll)
+            }
             Mode::AgentMetadata { key, scroll } => self.draw_agent_metadata(f, key, *scroll),
             Mode::DependencyGraph { scroll } => self.draw_dependency_graph(f, *scroll),
             Mode::ExecutionDashboard(_) => {}

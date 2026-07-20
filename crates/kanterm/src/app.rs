@@ -1,3 +1,4 @@
+use crate::clipboard::{ClipboardWriter, Osc52Clipboard};
 use crate::mode::{ExecutionDashboardState, ExecutionDashboardView, Mode};
 use anyhow::Result;
 use kanterm_core::{now_ms, Board, Card, Label, Store};
@@ -17,6 +18,7 @@ mod render_execution_dashboard;
 mod render_execution_timeline;
 mod render_memory_dialogs;
 mod render_popups;
+mod render_prompt;
 mod render_status;
 
 const ACTOR: &str = "tui";
@@ -48,6 +50,7 @@ pub(crate) struct App {
     /// view. Kanban card details continue to return to Kanban.
     detail_return_dashboard: Option<ExecutionDashboardState>,
     status: String,
+    clipboard: Box<dyn ClipboardWriter>,
     /// Last-seen SQLite data_version; lets us notice agent/MCP writes and
     /// auto-refresh without polling table contents.
     data_version: i64,
@@ -76,6 +79,7 @@ impl App {
             )),
             detail_return_dashboard: None,
             status: String::new(),
+            clipboard: Box::new(Osc52Clipboard),
             data_version: 0,
             should_quit: false,
         };

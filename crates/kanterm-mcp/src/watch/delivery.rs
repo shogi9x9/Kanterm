@@ -1,10 +1,10 @@
 use anyhow::{anyhow, Context, Result};
-use kanterm_core::AgentHandoff;
+use kanterm_core::{AgentHandoff, AgentWorkPacket};
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
-use crate::targets::DeliveryTarget;
+use crate::targets::{DeliveryTarget, PromptTransport, TargetPolicy};
 
 #[derive(Debug, Clone)]
 pub(crate) struct BridgeCommand {
@@ -12,18 +12,26 @@ pub(crate) struct BridgeCommand {
     pub(crate) args: Vec<String>,
     pub(crate) cwd: Option<PathBuf>,
     pub(crate) prompt: BridgePrompt,
+    pub(crate) prompt_transport: PromptTransport,
+    pub(crate) policy: Option<TargetPolicy>,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum BridgePrompt {
     Body,
-    Formatted,
+    Packet,
 }
 
 #[derive(Debug, Clone)]
 pub(crate) enum Delivery {
     Bridge(BridgeCommand),
     Command(BridgeCommand),
+}
+
+impl Delivery {
+    pub(super) const fn leaves_completion_to_receiver(&self) -> bool {
+        matches!(self, Self::Bridge(_))
+    }
 }
 
 pub(super) enum DeliveryOutcome {
@@ -55,16 +63,52 @@ pub(super) fn delivery_from_target(target: &DeliveryTarget) -> Result<Delivery> 
             program: command.command.clone(),
             args: command.args.clone(),
             cwd: command.repo.clone(),
-            prompt: BridgePrompt::Formatted,
+            prompt: BridgePrompt::Packet,
+            prompt_transport: command.prompt_transport,
+            policy: Some(command.policy.clone()),
         })),
-        DeliveryTarget::Interactive(target) => Err(anyhow!(
-            "interactive target '{}' is configured for adapter '{}' session '{}' pane '{}' but watcher delivery is not implemented yet",
-            target.name,
-            target.adapter.as_deref().unwrap_or("unknown"),
-            target.session.as_deref().unwrap_or(""),
-            target.pane.as_deref().unwrap_or("")
-        )),
+        DeliveryTarget::Interactive(target) => interactive_delivery(target),
     }
+}
+
+fn interactive_delivery(target: &crate::targets::InteractiveTarget) -> Result<Delivery> {
+    let adapter = target.adapter.as_deref().unwrap_or("");
+    if adapter != "kanpty" {
+        return Err(anyhow!(
+            "interactive target '{}' uses unsupported adapter '{}'; supported: kanpty",
+            target.name,
+            if adapter.is_empty() {
+                "unknown"
+            } else {
+                adapter
+            }
+        ));
+    }
+    if target.pane.is_some() {
+        return Err(anyhow!(
+            "interactive target '{}' uses kanpty, which addresses a session ID or alias directly and does not accept pane",
+            target.name
+        ));
+    }
+    let session = target
+        .session
+        .as_deref()
+        .filter(|value| !value.trim().is_empty())
+        .ok_or_else(|| anyhow!("interactive target '{}' requires session", target.name))?;
+    let mut args = Vec::new();
+    if let Some(socket) = &target.socket {
+        args.push("--socket".into());
+        args.push(socket.to_string_lossy().into_owned());
+    }
+    args.extend(["paste".into(), "--enter".into(), session.to_string()]);
+    Ok(Delivery::Bridge(BridgeCommand {
+        program: "kanpty".into(),
+        args,
+        cwd: None,
+        prompt: BridgePrompt::Packet,
+        prompt_transport: PromptTransport::Stdin,
+        policy: None,
+    }))
 }
 
 fn run_bridge(
@@ -77,6 +121,24 @@ fn run_bridge(
     if let Some(cwd) = &bridge.cwd {
         command.current_dir(cwd);
     }
+    if let Some(policy) = &bridge.policy {
+        policy.configure_process(&mut command)?;
+    }
+    let rendered_prompt = bridge_prompt(handoff, bridge.prompt)?;
+    let prompt_on_stdin = match bridge.prompt_transport {
+        PromptTransport::Stdin => true,
+        PromptTransport::Argument => {
+            command.arg(&rendered_prompt);
+            false
+        }
+    };
+    command.env(
+        "KANTERM_DELIVERY_MODE",
+        match bridge.prompt {
+            BridgePrompt::Body => "handoff-body",
+            BridgePrompt::Packet => "packet",
+        },
+    );
     let command = command
         .env("KANTERM_HANDOFF_ID", &handoff.id)
         .env("KANTERM_HANDOFF_FROM_AGENT", &handoff.from_agent)
@@ -93,7 +155,11 @@ fn run_bridge(
                 .map(|v| v.to_string())
                 .unwrap_or_default(),
         )
-        .stdin(Stdio::piped());
+        .stdin(if prompt_on_stdin {
+            Stdio::piped()
+        } else {
+            Stdio::null()
+        });
     command.stdout(if capture_stdout {
         Stdio::piped()
     } else {
@@ -103,8 +169,12 @@ fn run_bridge(
         .stderr(Stdio::inherit())
         .spawn()
         .with_context(|| format!("spawning bridge command '{}'", bridge.program))?;
-    if let Some(mut stdin) = child.stdin.take() {
-        stdin.write_all(bridge_prompt(handoff, bridge.prompt).as_bytes())?;
+    if prompt_on_stdin {
+        let mut stdin = child
+            .stdin
+            .take()
+            .ok_or_else(|| anyhow!("bridge command stdin was not available"))?;
+        stdin.write_all(rendered_prompt.as_bytes())?;
     }
     let output = child.wait_with_output()?;
     if output.status.success() {
@@ -114,20 +184,10 @@ fn run_bridge(
     }
 }
 
-fn bridge_prompt(handoff: &AgentHandoff, prompt: BridgePrompt) -> String {
+fn bridge_prompt(handoff: &AgentHandoff, prompt: BridgePrompt) -> Result<String> {
     match prompt {
-        BridgePrompt::Body => handoff.body.clone(),
-        BridgePrompt::Formatted => format!(
-            "Kanterm handoff received.\n\nhandoff_id: {}\nfrom_agent: {}\nto_agent: {}\nsubject: {}\nboard_id: {}\ncard_key: {}\nlease_expires_at: {}\n\nTask:\n{}\n",
-            handoff.id,
-            handoff.from_agent,
-            handoff.to_agent,
-            handoff.subject,
-            opt(&handoff.board_id),
-            opt(&handoff.card_key),
-            handoff.lease_expires_at.map(|v| v.to_string()).unwrap_or_default(),
-            handoff.body
-        ),
+        BridgePrompt::Body => Ok(handoff.body.clone()),
+        BridgePrompt::Packet => AgentWorkPacket::execute_handoff(handoff).render(),
     }
 }
 
@@ -150,4 +210,55 @@ fn handoff_payload(handoff: &AgentHandoff) -> serde_json::Value {
 
 fn opt(value: &Option<String>) -> &str {
     value.as_deref().unwrap_or("")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::targets::InteractiveTarget;
+
+    #[test]
+    fn kanpty_target_builds_stdin_paste_delivery_to_one_session() {
+        let target = DeliveryTarget::Interactive(InteractiveTarget {
+            name: "claude-local".into(),
+            agent: Some("claude".into()),
+            adapter: Some("kanpty".into()),
+            session: Some("claude-board-a".into()),
+            pane: None,
+            socket: Some(PathBuf::from("/run/user/1000/kanpty/daemon.sock")),
+        });
+
+        let delivery = delivery_from_target(&target).unwrap();
+        let Delivery::Bridge(command) = delivery else {
+            panic!("interactive kanpty delivery must be a non-completing bridge");
+        };
+        assert_eq!(command.program, "kanpty");
+        assert_eq!(
+            command.args,
+            [
+                "--socket",
+                "/run/user/1000/kanpty/daemon.sock",
+                "paste",
+                "--enter",
+                "claude-board-a"
+            ]
+        );
+        assert!(matches!(command.prompt, BridgePrompt::Packet));
+        assert_eq!(command.prompt_transport, PromptTransport::Stdin);
+    }
+
+    #[test]
+    fn kanpty_rejects_tmux_style_pane_addressing() {
+        let target = DeliveryTarget::Interactive(InteractiveTarget {
+            name: "invalid".into(),
+            agent: None,
+            adapter: Some("kanpty".into()),
+            session: Some("agent".into()),
+            pane: Some("0".into()),
+            socket: None,
+        });
+
+        let error = delivery_from_target(&target).err().unwrap();
+        assert!(error.to_string().contains("does not accept pane"));
+    }
 }

@@ -22,6 +22,8 @@ English version: [RELEASE.md](RELEASE.md)
 cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets
+sh -n install.sh scripts/test-install.sh
+scripts/test-install.sh
 cargo build --release --workspace
 cargo package --list -p kanterm-core
 cargo package --list -p kanterm
@@ -74,6 +76,7 @@ release workflow は以下を upload します。
 
 - `kanterm-linux-x86_64.tar.gz`
 - `kanterm-macos-arm64.tar.gz`
+- `install.sh`
 - `SHA256SUMS`
 
 workflow 完了後、公開 asset を確認します。
@@ -92,6 +95,10 @@ tar -tzf kanterm-macos-arm64.tar.gz
 - `LICENSE`
 - `kanterm`
 - `kanterm-mcp`
+
+`install.sh`は選択したreleaseから`kanterm`、`kanterm-mcp`、`kanpty`、`kanptyd`を
+導入し、既存binaryを置換する前に両archiveを検証する必要があります。fixture testは
+networkに依存させません。
 
 利用者は archive を展開し、`kanterm` と `kanterm-mcp` を `PATH` の通った directory
 へ配置して install します。

@@ -1,7 +1,9 @@
 use anyhow::{anyhow, Context, Result};
+use kanterm_core::resolve_config;
 use std::path::PathBuf;
 
 use super::delivery::{delivery_from_target, BridgeCommand, BridgePrompt, Delivery};
+use crate::targets::PromptTransport;
 use crate::targets::TargetConfig;
 
 const DEFAULT_INTERVAL_MS: u64 = 5_000;
@@ -99,10 +101,19 @@ impl WatchArgs {
                 args: bridge_args,
                 cwd: None,
                 prompt: BridgePrompt::Body,
+                prompt_transport: PromptTransport::Stdin,
+                policy: None,
             })),
             (None, Some(name)) => {
-                let path =
-                    targets_path.ok_or_else(|| anyhow!("--targets is required with --target"))?;
+                let cwd = std::env::current_dir().context("determining current directory")?;
+                let path = resolve_config(&cwd, targets_path, None)?
+                    .targets
+                    .ok_or_else(|| {
+                        anyhow!(
+                            "--targets is required with --target because no targets file is configured; run `kanterm config init --project` or pass --targets PATH"
+                        )
+                    })?
+                    .path;
                 let config = TargetConfig::load(&path)?;
                 Some(delivery_from_target(config.find(&name)?)?)
             }
@@ -124,7 +135,7 @@ impl WatchArgs {
 }
 
 pub(crate) fn usage() -> &'static str {
-    "usage: kanterm-mcp watch-handoffs --for-agent ID --claim-token TOKEN [--once] [--replace-existing] [--skip-if-running] [--run-dir DIR] [--interval-ms MS] [--lease-minutes MIN] [--bridge-command PROGRAM --bridge-arg ARG ... | --targets PATH --target NAME]"
+    "usage: kanterm-mcp watch-handoffs --for-agent ID --claim-token TOKEN [--once] [--replace-existing] [--skip-if-running] [--run-dir DIR] [--interval-ms MS] [--lease-minutes MIN] [--bridge-command PROGRAM --bridge-arg ARG ... | [--targets PATH] --target NAME]"
 }
 
 fn required_value<'a>(args: &'a [String], index: usize, name: &str) -> Result<&'a str> {

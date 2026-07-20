@@ -66,15 +66,28 @@ fn scan_once(store: &mut Store, args: &WatchArgs) -> Result<usize> {
             }
             Ok(DeliveryOutcome::Delivered) => delivered += 1,
             Err(err) => {
-                store.update_handoff_status(
-                    &claimed.id,
-                    &args.for_agent,
-                    Some(&args.claim_token),
-                    &HandoffStatusPatch {
-                        status: "failed".into(),
-                        note: Some(err.to_string()),
-                    },
-                )?;
+                if args
+                    .bridge
+                    .as_ref()
+                    .is_some_and(|delivery| delivery.leaves_completion_to_receiver())
+                {
+                    store.requeue_handoff(
+                        &claimed.id,
+                        &args.for_agent,
+                        Some(&args.claim_token),
+                        Some(&err.to_string()),
+                    )?;
+                } else {
+                    store.update_handoff_status(
+                        &claimed.id,
+                        &args.for_agent,
+                        Some(&args.claim_token),
+                        &HandoffStatusPatch {
+                            status: "failed".into(),
+                            note: Some(err.to_string()),
+                        },
+                    )?;
+                }
                 return Err(err);
             }
         }
