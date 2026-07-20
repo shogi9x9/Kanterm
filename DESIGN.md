@@ -396,7 +396,7 @@ after fan-in.
 - **Runtime hooks**: the Claude Code hook installer manages only Kanterm-owned
   `SessionStart`, `SessionEnd`, and `Stop` entries and preserves unrelated hooks.
 
-## Unreleased dashboard revision
+## 0.3.0 dashboard revision
 
 - The active tabs are Kanban, LIST, and TIMELINE. `Tab` / `Shift+Tab` cycle them,
   `1` / `2` / `3` select directly, and `b` uses the same board switcher in all

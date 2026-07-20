@@ -58,7 +58,7 @@ protocol-v2-compatible release. Both can be selected explicitly:
 
 ```sh
 sh /tmp/kanterm-install.sh \
-  --kanterm-version v0.2.0 \
+  --kanterm-version v0.3.0 \
   --kanpty-version v0.2.0 \
   --install-dir /path/to/bin
 ```

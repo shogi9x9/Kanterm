@@ -6,6 +6,8 @@
 
 ## Unreleased
 
+## 0.3.0 - 2026-07-20
+
 - `kanterm`、`kanterm-mcp`、`kanpty`、`kanptyd`をまとめて導入するchecksum検証付き
   installerを追加。個別version指定とbinary単位のatomicな置換に対応。
 - `orient`、`execute`、`verify`、bounded `resume` profileを共有する

@@ -58,7 +58,7 @@ cargo publish --dry-run -p <crate>
 
 ## GitHub Release
 
-GitHub Releases は `v*` tag の push で作成します。`0.1.0` の場合:
+GitHub Releases は `v*` tag の push で作成します。`0.3.0` の場合:
 
 ```sh
 git switch main
@@ -67,9 +67,9 @@ cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets
 cargo build --release -p kanterm -p kanterm-mcp
-git tag -a v0.1.0 -m "v0.1.0"
+git tag -a v0.3.0 -m "v0.3.0"
 git push origin main
-git push origin v0.1.0
+git push origin v0.3.0
 ```
 
 release workflow は以下を upload します。
@@ -82,7 +82,7 @@ release workflow は以下を upload します。
 workflow 完了後、公開 asset を確認します。
 
 ```sh
-gh release download v0.1.0 --dir <download-dir>
+gh release download v0.3.0 --dir <download-dir>
 cd <download-dir>
 sha256sum -c SHA256SUMS
 tar -tzf kanterm-linux-x86_64.tar.gz
